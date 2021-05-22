@@ -1,0 +1,76 @@
+
+<Blazorise.ThemeProvider Theme="@theme">
+    @*  <CascadingBlazoredModal>*@
+    <Router AppAssembly="@typeof(Program).Assembly" PreferExactMatches="@true">
+        <Found Context="routeData">
+            <CascadingAuthenticationState>
+                <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                    <Authorizing>
+                        <text>Please wait, we are authorizing you.</text>
+                    </Authorizing>
+                    <NotAuthorized>
+                        @if (!context.User.Identity.IsAuthenticated)
+                        {
+                            <RedirectLogin />
+                        }
+                        else
+                        {
+                            <p>The Page Access is not yet configured yet. Please contact your administrator.</p>
+                        }
+                    </NotAuthorized>
+                </AuthorizeRouteView>
+            </CascadingAuthenticationState>
+        </Found>
+        <NotFound>
+            <CascadingAuthenticationState>
+                <LayoutView Layout="@typeof(MainLayout)">
+                    <p>Sorry, there's nothing at this address.</p>
+                </LayoutView>
+            </CascadingAuthenticationState>
+        </NotFound>
+    </Router>
+    @* </CascadingBlazoredModal> *@
+</Blazorise.ThemeProvider>
+
+
+
+@code{
+    private Theme theme = new Theme
+    {
+        BackgroundOptions = new ThemeBackgroundOptions
+        {
+            Body = "#dedede"
+        },
+        IsRounded = false,
+        SidebarOptions = new ThemeSidebarOptions
+        {
+
+        }
+    };
+}
+
+
+@*<CascadingAuthenticationState>
+        <Router AppAssembly="@typeof(Program).Assembly" PreferExactMatches="@true">
+            <Found Context="routeData">
+                <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                    <NotAuthorized>
+                        @if (!context.User.Identity.IsAuthenticated)
+                        {
+                            <RedirectLogin />
+                        }
+                        else
+                        {
+                            <p>You are not authorized to access this resource.</p>
+                        }
+                    </NotAuthorized>
+                </AuthorizeRouteView>
+            </Found>
+            <NotFound>
+                <LayoutView Layout="@typeof(MainLayout)">
+                    <p>Sorry, there's nothing at this address.</p>
+                </LayoutView>
+            </NotFound>
+        </Router>
+    </CascadingAuthenticationState>*@
+

@@ -1,0 +1,42 @@
+﻿@page "/"
+@inject HttpClient http
+@attribute [Authorize]
+
+
+<div class="jumbotron bg-secondary text-white-50">
+    <h1 class="display-4">Hello @Username!</h1>
+    <p class="lead ml-3">Welcome to Inventory Control V.2</p>
+
+
+        <hr class="my-4">
+        <div class="d-flex justify-content-end">
+            <p class="lead">Current Role : @Role</p>
+        </div>
+        @*<div class="d-flex justify-content-around">
+                <img src="../images/qneLogo.png" />
+            </div>*@
+        @*<p class="lead">
+                <a class="btn btn-primary btn-lg" href="#" role="button">Learn more</a>
+            </p>*@
+    </div>
+    @code{
+        [CascadingParameter]
+        public Task<AuthenticationState>
+          authenticationState
+        { get; set; }
+        private string Username = string.Empty;
+        private string Role = string.Empty;
+        protected override async Task OnParametersSetAsync()
+        {
+            var user = (await authenticationState).User;
+
+            if (user.Identity.IsAuthenticated)
+            {
+                var claim = user.FindFirst(x => x.Type == System.Security.Claims.ClaimTypes.Name);
+                Username = claim.Value;
+                var claim2 = user.FindFirst(x => x.Type == System.Security.Claims.ClaimTypes.Role);
+                Role = claim2.Value;
+
+            }
+        }
+    }

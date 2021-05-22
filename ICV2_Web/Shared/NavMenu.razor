@@ -1,0 +1,132 @@
+﻿@inject HttpClient http
+
+
+<LayoutSider>
+    <LayoutSiderContent>
+        <Bar Breakpoint="Breakpoint.Desktop"
+             NavigationBreakpoint="Breakpoint.Tablet"
+             Mode="BarMode.VerticalInline"
+             CollapseMode="BarCollapseMode.Small"
+             @bind-Visible="siderVisible">
+            <BarBrand>
+                <BarItem>
+                    <BarLink To="">
+                        Nutratech
+                    </BarLink>
+                </BarItem>
+            </BarBrand>
+            <BarMenu>
+                <BarStart>
+                    <BarItem>
+                        <BarLink To="">
+                            <BarIcon IconName="IconName.Home" />
+                            Home
+                        </BarLink>
+                    </BarItem>
+                         <Divider DividerType="DividerType.TextContent" Text="QNE" />
+                
+                    @if (menuList != null)
+                    {
+                        @foreach (var mn in menuList)
+                        {
+                            if (mn.ParentMenuId == 0)
+                            {
+                                <BarItem>
+                                    <BarDropdown>
+                                        <BarDropdownToggle>
+                                            <BarIcon IconName="IconName.Home" />
+                                            @mn.MenuName
+                                        </BarDropdownToggle>
+
+                                        <BarDropdownMenu>
+                                            @foreach (var mn1 in menuList)
+                                            {
+                                                @if (mn.MenuId == mn1.ParentMenuId)
+                                                {
+                                                    <BarDropdownItem To="@mn1.PageName">
+                                                        @mn1.MenuName
+                                                    </BarDropdownItem>
+                                                }
+                                            }
+                                        </BarDropdownMenu>
+                                    </BarDropdown>
+                                </BarItem>
+                            }
+                        }
+                    }
+                </BarStart>
+                <BarEnd>
+                    <BarLabel>Copyright : Nutratech Biopharma Inc.</BarLabel>
+                </BarEnd>
+            </BarMenu>
+        </Bar>
+    </LayoutSiderContent>
+</LayoutSider>
+
+
+@*<Sidebar Data="@sidebar" />*@
+@code{
+
+    //SidebarInfo sidebar = new SidebarInfo();
+
+    private IEnumerable<MenuInfo> menuList;
+    private bool siderVisible = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        menuList = await http.GetFromJsonAsync<IEnumerable<MenuInfo>>("api/Navigation");
+
+    }
+    void ToggleSidebar()
+    {
+        siderVisible = !siderVisible;
+        StateHasChanged();
+    }
+
+    #region
+    @*List<SidebarItemInfo> ParentMenu = new List<SidebarItemInfo>();
+
+        ParentMenu.Add(new SidebarItemInfo
+        {
+            To = "/",
+            Text = "Home"
+        });
+
+        if (menuList is not null)
+        {
+            @foreach (var mn in menuList)
+            {
+                if (mn.ParentMenuId == 0)
+                {
+                    List<SidebarItemInfo> ParentSubmenu = new List<SidebarItemInfo>();
+
+                    ParentMenu.Add(new SidebarItemInfo
+                    {
+                        To = mn.PageName,
+                        Text = mn.MenuName,
+                        SubItems = ParentSubmenu
+                    });
+
+                    foreach (var mn1 in menuList)
+                    {
+                        @if (mn.MenuId == mn1.ParentMenuId)
+                        {
+                            ParentSubmenu.Add(new SidebarItemInfo { To = mn1.PageName, Text = mn1.MenuName });
+                        }
+                    }
+
+                }
+            }
+
+            sidebar = new SidebarInfo
+            {
+                Brand = new SidebarBrandInfo
+                {
+                    Text = "Inventory Control V.2"
+                },
+                Items = ParentMenu
+            };*@
+    #endregion
+}
+
+

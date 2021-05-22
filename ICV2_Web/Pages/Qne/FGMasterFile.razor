@@ -1,0 +1,138 @@
+﻿@page "/FGMasterFile"
+@using System.Text.Json;
+@using System.IO
+@using ClosedXML.Excel;
+@using ICV2_Web.JSHelper
+@attribute [Authorize(Roles = "Administrator,User")]
+@implements IDisposable
+@inject AppState AppState
+@inject HttpClient http
+@inject IJSRuntime js
+
+
+<h3>FGMasterFile</h3>
+<div class="card">
+    <div class="card-header">
+
+    </div>
+    <div class="card-body">
+
+        <table class="table table-condensed table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th>STOCK CODE</th>
+                    <th>STOCK NAME</th>
+                    <th>SWINE</th>
+                    <th>POULTRY</th>
+                    <th>COMMON</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                @if (model != null)
+                {
+                    @foreach (var item in model)
+                    {
+                        //bool swine = item.SWINE == null ? false : item.SWINE == true ? true : false;
+                        //bool poultry = item.POULTRY == null ? false : item.POULTRY == true ? true : false;
+                        //bool common = item.COMMON == null ? false : item.COMMON == true ? true : false;
+
+                    <tr>
+                    <td>@item.StockCode</td>
+                    <td>@item.StockName</td>
+                    <td><input type="checkbox" @onchange="((args)=> CheckChanged(item, args.Value,'S'))" checked="@item.SWINE" /></td>
+                    <td><input type="checkbox" @onchange="((args)=> CheckChanged(item, args.Value,'P'))"  checked="@item.POULTRY"/></td>
+                    <td><input type="checkbox" @onchange="((args)=> CheckChanged(item, args.Value,'C'))" checked="@item.COMMON"/></td>
+                </tr>
+                    }
+                }
+                    </tbody>
+
+        </table>
+    </div>
+    <div class="card-footer">
+
+    </div>
+</div>
+
+@code {
+    private List<FGMASTERFILEMODEL> model { get; set; } = new List<FGMASTERFILEMODEL>();
+    private FGMASTERFILEMODEL Selected { get; set; }
+    private string CompCode { get; set; }
+
+    protected async Task CheckChanged(FGMASTERFILEMODEL fg,object checkBoxState,Char category)
+    {
+        var file = new FGMASTERFILEFILTER {
+            StockCode = fg.StockCode,
+            IsChecked = (Boolean)checkBoxState,
+            Category = category,
+            companyCode = CompCode,
+            CATID = fg.CATID
+        };
+
+
+        await http.PostAsJsonAsync("api/Qne/AddUpdateFG", file);
+
+        FGMASTERFILEMODEL replaced = new FGMASTERFILEMODEL();
+
+        if (file.CATID == null)
+        {
+            string Url = String.Format("api/Qne/FindFGByCode?companyCode={0}&stockCode={1}", CompCode, fg.StockCode);
+            replaced = await http.GetFromJsonAsync<FGMASTERFILEMODEL>(Url);
+
+            if (replaced != null && replaced.CATID > 0 && replaced.CATID != null)
+            {
+                this.model[model.FindIndex(i => i.StockCode.Equals(fg.StockCode))] = replaced;
+            }
+        }
+        Console.WriteLine(file.CATID);
+
+
+
+        //int index = this.model.FindIndex(a => a.StockCode == fg.StockCode);
+        //this.model.RemoveAll(x => x.StockCode == fg.StockCode);
+        //this.model.Insert(index,)
+        //Console.WriteLine(catid.ToString());
+        //Console.WriteLine(category);
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState.CompanyReady())
+        {
+            await LoadData();
+        }
+    }
+    private async Task LoadData()
+    {
+        CompCode = AppState.selectedCompanyCode;
+        model = await http.GetFromJsonAsync<List<FGMASTERFILEMODEL>>("api/Qne/GetFG?companyCode=" + CompCode);
+    }
+    private MemoryStream GetStream(XLWorkbook excelWorkbook)
+    {
+        MemoryStream fs = new MemoryStream();
+        excelWorkbook.SaveAs(fs);
+        fs.Position = 0;
+        return fs;
+    }
+    private async Task AppState_StateChanged(ComponentBase Source, string Property)
+    {
+        if (Source != this)
+        {
+            if (AppState.CompanyReady())
+            {
+                await LoadData();
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    protected override void OnInitialized()
+    {
+        AppState.StateChanged += async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+    void IDisposable.Dispose()
+    {
+        AppState.StateChanged -= async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+}
+
+

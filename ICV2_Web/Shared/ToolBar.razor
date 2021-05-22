@@ -1,0 +1,50 @@
+﻿@inject HttpClient http
+@inject AppState AppState
+@implements IDisposable
+
+<Select TValue="string" SelectedValue="@AppState.selectedCompanyCode" SelectedValueChanged="@OnSelectedValueChanged">
+    @if (companies == null)
+    {
+        <SelectItem Value="404">Loading</SelectItem>
+    }
+    else
+    {
+        <SelectItem Value="404">- SELECT -</SelectItem>
+        @foreach (var comp in companies)
+        {
+            <SelectItem Value="@comp.Code">@comp.Name</SelectItem>
+        }
+    }
+</Select>
+
+@code {
+
+    private IEnumerable<Company> companies;
+    protected override async Task OnInitializedAsync()
+    {
+        companies = await http.GetFromJsonAsync<IEnumerable<Company>>("api/Navigation/GetCompany");
+    }
+
+    private async Task AppState_StateChanged(ComponentBase Source,string Property)
+    {
+        if (Source != this)
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    void OnSelectedValueChanged(string value)
+    {
+        AppState.UpdateSelectedCompany(this,value);
+
+        Console.WriteLine(AppState.selectedCompanyCode);
+    }
+
+    protected override void OnInitialized()
+    {
+        AppState.StateChanged += async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+    void IDisposable.Dispose()
+    {
+        AppState.StateChanged -= async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+}

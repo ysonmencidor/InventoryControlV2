@@ -1,0 +1,404 @@
+﻿@page "/CustomerStatement"
+@using System.Text.Json;
+@using System.IO
+@using ClosedXML.Excel;
+@using ICV2_Web.JSHelper
+@attribute [Authorize(Roles = "Administrator,User")]
+@implements IDisposable
+@inject AppState AppState
+@inject HttpClient http
+@inject IJSRuntime js
+
+<div class="card">
+    @if (formModel != null)
+    {
+        <EditForm Model="formModel" OnSubmit="GenerateReport">
+            <div class="card-header bg-secondary text-white">
+                Customer Statements
+            </div>
+            <div class="card-body">
+                <div class="form-group row">
+                    <label for="datefrom" class="col-sm-2 col-form-label">Date from</label>
+                    <div class="col-sm-10">
+                        <InputDate id="datefrom" @bind-Value="formModel.DateFrom" class="form-control" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="dateTo" class="col-sm-2 col-form-label">Date to</label>
+                    <div class="col-sm-10">
+                        <InputDate id="dateTo" @bind-Value="formModel.DateTo" class="form-control" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="stockgRoup" class="col-sm-2 col-form-label">Customer Code</label>
+                    <div class="col-sm-10">
+                        <InputSelect id="stockgRoup" @bind-Value="formModel.DebtortId" class="form-control">
+                            <option value="%%">All</option>
+                            @if (debtors is not null)
+                                {
+                                @foreach (var item in debtors)
+                                    {
+                                    <option value="@item.Id">@item.CompanyName</option>
+                                    }
+                                }
+                        </InputSelect>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="areaselect" class="col-sm-2 col-form-label">Area</label>
+                    <div class="col-sm-10">
+                        <InputSelect id="areaselect" @bind-Value="formModel.AreaId" class="form-control">
+                            <option value="%%">All</option>
+                            @if (area is not null)
+                                {
+                                @foreach (var item in area)
+                                    {
+                                    <option value="@item.Id">@item.Description</option>
+                                    }
+                                }
+                        </InputSelect>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="salesperson" class="col-sm-2 col-form-label">Sales Rep. Code</label>
+                    <div class="col-sm-10">
+                        <InputSelect id="salesperson" @bind-Value="formModel.SalesPersonId" class="form-control">
+                            <option value="%%">All</option>
+                            @if (salesPersons is not null)
+                                {
+                                @foreach (var item in salesPersons)
+                                    {
+                                    <option value="@item.Id">@item.StaffCode</option>
+                                    }
+                                }
+                        </InputSelect>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="debtcategory" class="col-sm-2 col-form-label">Customer Category</label>
+                    <div class="col-sm-10">
+                        <InputSelect id="debtcategory" @bind-Value="formModel.DebtorCategoryId" class="form-control">
+                            <option value="%%">All</option>
+                            @if (debtorCategories is not null)
+                                {
+                                @foreach (var item in debtorCategories)
+                                    {
+                                    <option value="@item.Id">@item.Description</option>
+                                    }
+                                }
+                        </InputSelect>
+                    </div>
+                </div>
+
+
+            </div>
+            <div class="card-footer">
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-outline-info">Generate Report</button>
+                </div>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+
+
+   CUSTOMERSTATEMENTFILTER formModel = new();
+
+    private List<Debtors> debtors { get; set; }
+    private List<Areas> area { get; set; }
+    private List<DebtorCategory> debtorCategories { get; set; }
+    private List<SalesPersons> salesPersons { get; set; }
+    private List<Company> companies { get; set; }
+    //private List<CUSTOMERSTATEMENTRESULT> cUSTOMERSTATEMENTRESULTs = new();
+
+
+    private async Task GenerateReport()
+    {
+        formModel.CompanyCode = AppState.selectedCompanyCode;
+        var httpRequest = await http.PostAsJsonAsync("api/Report/GenerateCustomerStatement", formModel);
+
+        if (httpRequest.IsSuccessStatusCode)
+        {
+            var responseString = await httpRequest.Content.ReadAsStringAsync();
+
+            //Console.WriteLine(responseString);
+            var data = JsonSerializer.Deserialize<List<CUSTOMERSTATEMENTRESULT>>(responseString,
+              new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+
+            GenerateExcel(data);
+
+        }
+    }
+
+    private async void GenerateExcel(List<CUSTOMERSTATEMENTRESULT> list)
+    {
+        string PayToCompany = companies.Where(y =>y.Code == formModel.CompanyCode).Select(x => x.Name).First();
+        IXLAddress ORIGINAL_AMOUNT_BEGIN_CELL;
+        IXLAddress ORIGINAL_AMOUNT_END_CELL;
+
+        IXLAddress PAID_AMOUNT_BEGIN_CELL;
+        IXLAddress PAID_AMOUNT_END_CELL;
+
+        IXLAddress OUTSTANDING_BALANCE_BEGIN_CELL;
+        IXLAddress OUTSTANDING_BALANCE_END_CELL;
+
+        IXLAddress PDC_AMOUNT_BEGIN_CELL;
+        IXLAddress PDC_AMOUNT_END_CELL;
+
+        list = list.OrderBy(i => i.DeliveryOrderDate).ToList();
+
+        using (XLWorkbook wb = new XLWorkbook())
+        {
+            IXLWorksheet ws = wb.Worksheets.Add("Customer Statements");
+            IXLCell cell;
+            int rowNumber = 0;
+            //cell = ws.Cell("A" + ++rowNumber).SetValue(company_name);
+            //cell = ws.Cell("A" + ++rowNumber).SetValue("Date From: ");
+            //cell = ws.Cell("B" + rowNumber).SetValue(DATEFROM);
+            //cell = ws.Cell("A" + ++rowNumber).SetValue("Date To: ");
+            //cell = ws.Cell("B" + rowNumber).SetValue(DATETO);
+            //rowNumber++;
+            if (!String.Equals(formModel.DebtortId, "%%"))
+            {
+                //DEBTOR ADDRESS
+                var DEBTOR = list.First();
+
+                cell = ws.Cell("A" + ++rowNumber).SetValue(DEBTOR.DEBTORNAME);
+                cell = ws.Cell("A" + ++rowNumber).SetValue(DEBTOR.ADDRESS1);
+                cell = ws.Cell("A" + ++rowNumber).SetValue(DEBTOR.ADDRESS2);
+                cell = ws.Cell("A" + ++rowNumber).SetValue(DEBTOR.ADDRESS3);
+                cell = ws.Cell("A" + ++rowNumber).SetValue(DEBTOR.ADDRESS4);
+            }
+            string AS_OF_DATE = formModel.DateTo?.ToString("MMM dd, yyyy");
+            cell = ws.Cell("A" + ++rowNumber).SetValue("AS OF " + AS_OF_DATE);
+            rowNumber += 2;
+            cell = ws.Cell("A" + rowNumber).SetValue("DR DATE");
+            cell.Style.Font.Bold = true;
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            cell = ws.Cell("B" + rowNumber).SetValue("DR NO");
+            cell.Style.Font.Bold = true;
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            cell = ws.Cell("C" + rowNumber).SetValue("SI NO");
+            cell.Style.Font.Bold = true;
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            cell = ws.Cell("D" + rowNumber).SetValue("ORIGINAL AMOUNT");
+            cell.Style.Font.Bold = true;
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            cell = ws.Cell("E" + rowNumber).SetValue("PAID AMOUNT");
+            cell.Style.Font.Bold = true;
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            cell = ws.Cell("F" + rowNumber).SetValue("OUTSTANDING BALANCE");
+            cell.Style.Font.Bold = true;
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            cell = ws.Cell("G" + rowNumber).SetValue("AGING");
+            cell.Style.Font.Bold = true;
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            cell = ws.Cell("H" + rowNumber).SetValue("PDC");
+            cell.Style.Font.Bold = true;
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            cell = ws.Cell("I" + rowNumber).SetValue("DUE DATE");
+            cell.Style.Font.Bold = true;
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            cell = ws.Cell("J" + rowNumber).SetValue("DETAILS");
+            cell.Style.Font.Bold = true;
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+
+
+
+            rowNumber++;
+
+            cell = ws.Cell("D" + rowNumber);
+            ORIGINAL_AMOUNT_BEGIN_CELL = cell.Address;
+
+            cell = ws.Cell("E" + rowNumber);
+            PAID_AMOUNT_BEGIN_CELL = cell.Address;
+
+            cell = ws.Cell("F" + rowNumber);
+            OUTSTANDING_BALANCE_BEGIN_CELL = cell.Address;
+
+            cell = ws.Cell("H" + rowNumber);
+            PDC_AMOUNT_BEGIN_CELL = cell.Address;
+
+
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                var inv = list[i];
+
+
+                cell = ws.Cell("A" + rowNumber).SetValue(inv.DeliveryOrderDate);
+                cell = ws.Cell("B" + rowNumber).SetValue(inv.OurDONO);
+                cell = ws.Cell("C" + rowNumber).SetValue(inv.InvoiceCode);
+                cell = ws.Cell("D" + rowNumber).SetValue(inv.TotalAmountLocal);
+                cell.Style.NumberFormat.Format = "#,##0.00";
+                cell = ws.Cell("E" + rowNumber).SetValue(inv.PAIDAMOUNT);
+                cell.Style.NumberFormat.Format = "#,##0.00";
+                cell = ws.Cell("F" + rowNumber);
+                cell.FormulaA1 = "D" + rowNumber + " - E" + rowNumber;
+                cell.Style.NumberFormat.Format = "#,##0.00";
+                cell = ws.Cell("G" + rowNumber).SetValue(inv.AGING);
+                // cell = ws.Cell("K" + rowNumber).SetValue(inv.TERMCODE);
+
+
+
+
+
+                if (inv.matchedPDCs.Count > 0)
+                {
+                    foreach (var matched in inv.matchedPDCs)
+                    {
+                        cell = ws.Cell("G" + rowNumber).SetValue(matched.AGING);
+                        cell = ws.Cell("H" + rowNumber).SetValue(matched.PDC_AMOUNT);
+                        cell.Style.NumberFormat.Format = "#,##0.00";
+                        cell = ws.Cell("I" + rowNumber).SetValue(matched.DUEDATE);
+                        cell = ws.Cell("J" + rowNumber).SetValue(matched.DETAILS);
+
+                        rowNumber++;
+                    }
+                    rowNumber--;
+                }
+                else
+                {
+
+                    //  cell = ws.Cell("L" + rowNumber).SetValue(inv.AGING);
+                }
+
+                rowNumber++;
+            }
+            cell = ws.Cell("C" + rowNumber).SetValue("TOTAL");
+            cell.Style.Font.Bold = true;
+            cell = ws.Cell("D" + (rowNumber - 1));
+            ORIGINAL_AMOUNT_END_CELL = cell.Address;
+
+
+            cell = ws.Cell("E" + (rowNumber - 1));
+            PAID_AMOUNT_END_CELL = cell.Address;
+
+            cell = ws.Cell("F" + (rowNumber - 1));
+            OUTSTANDING_BALANCE_END_CELL = cell.Address;
+
+            cell = ws.Cell("H" + (rowNumber - 1));
+            PDC_AMOUNT_END_CELL = cell.Address;
+
+
+
+            cell = ws.Cell("D" + rowNumber);
+            cell.FormulaA1 = "SUM(" + ORIGINAL_AMOUNT_BEGIN_CELL.ToString() + ":" + ORIGINAL_AMOUNT_END_CELL.ToString() + ")";
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.Bold = true;
+            cell.Style.Border.TopBorder = XLBorderStyleValues.Thin;
+
+            cell = ws.Cell("E" + rowNumber);
+            cell.FormulaA1 = "SUM(" + PAID_AMOUNT_BEGIN_CELL.ToString() + ":" + PAID_AMOUNT_END_CELL.ToString() + ")";
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.Bold = true;
+            cell.Style.Border.TopBorder = XLBorderStyleValues.Thin;
+
+            cell = ws.Cell("F" + rowNumber);
+            cell.FormulaA1 = "SUM(" + OUTSTANDING_BALANCE_BEGIN_CELL.ToString() + ":" + OUTSTANDING_BALANCE_END_CELL.ToString() + ")";
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.Bold = true;
+            cell.Style.Border.TopBorder = XLBorderStyleValues.Thin;
+
+            cell = ws.Cell("H" + rowNumber);
+            cell.FormulaA1 = "SUM(" + PDC_AMOUNT_BEGIN_CELL.ToString() + ":" + PDC_AMOUNT_END_CELL.ToString() + ")";
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.Bold = true;
+            cell.Style.Border.TopBorder = XLBorderStyleValues.Thin;
+
+            //cell = ws.Cell("K" + rowNumber);
+            //cell.FormulaA1 = "SUM(" + BALANCE_BEGIN_CELL.ToString() + ":" + BALANCE_END_CELL.ToString() + ")";
+            //cell.Style.NumberFormat.Format = "#,##0.00";
+            rowNumber++;
+            string footer = @"Please check if this statement corresponds with your record as of the date stated above, otherwise kindly";
+            cell = ws.Cell("A" + ++rowNumber).SetValue(footer);
+            footer = @"call our office for possible reconciliation. If we don't hear from you 10 days after receipt of this statement,";
+            cell = ws.Cell("A" + ++rowNumber).SetValue(footer);
+            footer = @"we will consider our records to be in order. If payment has been made, please disregard this statement.";
+            cell = ws.Cell("A" + ++rowNumber).SetValue(footer);
+
+            rowNumber++;
+            footer = @"NOTE: PLEASE PAY TO " + PayToCompany.ToUpper();
+            cell = ws.Cell("A" + ++rowNumber).SetValue(footer);
+
+            rowNumber++;
+            footer = @"Prepared By:";
+            cell = ws.Cell("A" + ++rowNumber).SetValue(footer);
+            cell = ws.Cell("C" + rowNumber);
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            footer = @"Certified Correct By:";
+            cell = ws.Cell("A" + ++rowNumber).SetValue(footer);
+            cell = ws.Cell("C" + rowNumber);
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+
+
+            ws.Column("A").Width = 15;
+            ws.Column("B").Width = 15;
+            ws.Column("C").Width = 15;
+            ws.Column("D").Width = 15;
+            ws.Column("E").Width = 15;
+            ws.Column("F").Width = 15;
+            ws.Column("G").Width = 15;
+            ws.Column("H").Width = 15;
+            ws.Column("I").Width = 15;
+            ws.Column("J").Width = 15;
+
+            if (wb.Worksheets.Count > 0)
+            {
+                MemoryStream ms = GetStream(wb);
+                byte[] bytes = ms.ToArray();
+                ms.Close();
+
+                await js.SaveAsFileAsync("CustomerStatement_" + formModel.DateFrom?.ToShortDateString() + "-" + formModel.DateTo?.ToShortDateString(), bytes, "application/vnd.ms-excel");
+            }
+            else
+            {
+                await js.InvokeVoidAsync("alert", "No record found.");
+            }
+        }
+    }
+    private MemoryStream GetStream(XLWorkbook excelWorkbook)
+    {
+        MemoryStream fs = new MemoryStream();
+        excelWorkbook.SaveAs(fs);
+        fs.Position = 0;
+        return fs;
+    }
+
+    private async Task LoadData()
+    {
+        companies = await http.GetFromJsonAsync<List<Company>>("api/Navigation/GetCompany");
+        debtors = await http.GetFromJsonAsync<List<Debtors>>("api/Qne/GetDebtors?companyCode=" + AppState.selectedCompanyCode);
+        area = await http.GetFromJsonAsync<List<Areas>>("api/Qne/GetAreas?companyCode=" + AppState.selectedCompanyCode);
+        debtorCategories = await http.GetFromJsonAsync<List<DebtorCategory>>("api/Qne/DebtorCategories?companyCode=" + AppState.selectedCompanyCode);
+        salesPersons = await http.GetFromJsonAsync<List<SalesPersons>>("api/Qne/GetSalesPersons?companyCode=" + AppState.selectedCompanyCode);
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState.CompanyReady())
+        {
+            await LoadData();
+        }
+    }
+    private async Task AppState_StateChanged(ComponentBase Source, string Property)
+    {
+        if (Source != this)
+        {
+            if (AppState.CompanyReady())
+            {
+                await LoadData();
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    protected override void OnInitialized()
+    {
+        AppState.StateChanged += async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+    void IDisposable.Dispose()
+    {
+        AppState.StateChanged -= async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+}

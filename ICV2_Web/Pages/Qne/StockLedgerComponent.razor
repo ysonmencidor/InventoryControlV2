@@ -1,0 +1,80 @@
+﻿@page "/StockLedger"
+@using DataAccessLibrary.TestModel
+@attribute [Authorize(Roles = "Administrator,User")]
+@implements IDisposable
+@inject AppState AppState
+@inject HttpClient http
+
+<h3>StockLedgerComponent</h3>
+@if (AppState.selectedCompanyCode != "404")
+{
+
+}
+else
+{
+    <h6 class="alert alert-warning">Please select company first.</h6>
+}
+
+<Button class="btn btn-secondary" @onclick="(() => LoadData())">show!</Button>
+<Button class="btn btn-primary" @onclick="(() => Console.WriteLine(AppState.selectedCompanyCode))">test</Button>
+
+@if (Stocks is not null)
+{
+    <table>
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Code</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Stocks)
+            {
+                <tr>
+                    <td>@item.Id</td>
+                    <td>@item.StockCode</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+@code {
+
+
+    List<Stocks> Stocks = new();
+
+    private async Task LoadData()
+    {
+        //ConnectionUsed = QNEConnectionString.ChooseConnection(AppState.selectedCompanyCode);
+
+        Stocks = await http.GetFromJsonAsync<List<Stocks>>("api/Qne/GetStockItems?companyCode=" + AppState.selectedCompanyCode);
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState.selectedCompanyCode != "404")
+        {
+            await LoadData();
+        }
+    }
+    private async Task AppState_StateChanged(ComponentBase Source, string Property)
+    {
+        if (Source != this)
+        {
+            if (AppState.selectedCompanyCode != "404")
+            {
+                await LoadData();
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    protected override void OnInitialized()
+    {
+        AppState.StateChanged += async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+    void IDisposable.Dispose()
+    {
+        AppState.StateChanged -= async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+}

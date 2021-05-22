@@ -1,0 +1,34 @@
+﻿@using Microsoft.AspNetCore.Components
+
+<div class="pb-3">
+    <div class="card">
+        <div class="card-header">
+            <button class="btn btn-sm btn-link" style="color: black; text-decoration: none" @onclick="Toggle">
+                <b>@CardHeaderTitle</b>
+            </button>
+            @CardHeader
+            <a class="float-right" @onclick="Toggle" style="cursor:pointer;"><span class="@BtnClass"></span></a>
+        </div>
+        @if (ShowCardBody)
+        {
+            <div class="card-body">
+                @CardBody
+            </div>
+        }
+    </div>
+
+</div>
+
+@code {
+    [Parameter] public RenderFragment CardBody { get; set; }
+    [Parameter] public RenderFragment CardHeader { get; set; }
+    [Parameter] public string CardHeaderTitle { get; set; }
+
+
+    [Parameter] public bool ShowCardBody { get; set; } = true;
+    public string BtnClass => ShowCardBody ? "fas fa-caret-up" : "fas fa-caret-down";
+    public void Toggle()
+    {
+        ShowCardBody = !ShowCardBody;
+    }
+}

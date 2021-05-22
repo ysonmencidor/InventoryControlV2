@@ -1,0 +1,257 @@
+﻿@page "/users"
+@inject HttpClient http
+@using System.Text.Json
+@attribute [Authorize(Roles = "Administrator")]
+
+@if (users is null)
+{
+    <p>Loading..</p>
+}
+else
+{
+
+    <div class="row">
+        <div class="col-12">
+
+
+            <div class="card">
+                <div class="card-header bg-secondary text-white shadow">
+                    <Icon Name="IconName.Users"></Icon>
+                    Users
+                </div>
+                <div class="card-body">
+                    <table width="100%" class="table table-striped table-hover p-0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>
+                                    Username
+                                </th>
+                                <th>
+                                    Name
+                                </th>
+                                <th>
+                                    User type
+                                </th>
+                                <th>
+                                    Status
+                                </th>
+                                <th>Access Type</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in users)
+                            {
+
+                                <tr>
+
+                                    <td>@item.Username</td>
+
+                                    <td>@item.Name</td>
+
+                                    <td>@item.RoleName</td>
+
+                                    <td>@item.IsActive</td>
+                                    <td>
+                                    @if (item.RoleName == "User") { 
+                                        @item.AccessType
+                                    }</td>
+                                    <td>
+                                        <Tooltip Text="Edit">
+                                            <button class="btn btn-primary btn-sm rounded-circle" @onclick="@(() => AddEditUser(item,true))"><Icon Name="IconName.Pen"></Icon></button>
+                                        </Tooltip>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer d-flex justify-content-end">
+
+                    <button class="btn btn-outline-info btn-sm" @onclick="@(() => AddEditUser(emptyuser,false))"><Icon Name="IconName.UserPlus"></Icon> Add new</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    }
+
+@if (user != null)
+{
+    <Modal @ref="modalRef" Closed="HideModal">
+        <ModalContent Centered="true">
+            <EditForm Model="user" autocomplete="false" OnValidSubmit="SubmitUser">
+ 
+                <ModalHeader>
+                    <ModalTitle>@title</ModalTitle>
+                    <CloseButton Clicked="@HideModal" />
+                </ModalHeader>
+                <ModalBody>
+                    <DataAnnotationsValidator />
+                    <Microsoft.AspNetCore.Components.Forms.ValidationSummary />
+                    <div class="form-group">
+                        <label for="username">Username </label>
+                        @if (user.Id > 0)
+                        {
+                            <InputText disabled="disabled" placeholder="Enter username" class="form-control" @bind-Value="user.Username" id="username"></InputText>
+                        }
+                        else
+                        {
+                            <InputText class="form-control" placeholder="Enter username" @bind-Value="user.Username" id="username"></InputText>
+                        }
+                    </div>
+                    <div class="form-group">
+                        <label for="Name">Name</label>
+                        <InputText class="form-control" placeholder="Enter Name" @bind-Value="user.Name" id="Name"></InputText>
+                    </div>
+                    <div class="form-group">
+                        <label for="roles">Access Level</label>
+                        <InputSelect id="roles" @bind-Value="user.RoleId" class="form-control">
+                            @foreach (var r in roles)
+                                {
+                                <option value="@r.RoleId">@r.RoleName</option>
+                                }
+                        </InputSelect>
+                    </div>
+                    @if (user.RoleId == 2)
+                    {
+                        <div class="form-group">
+                            <label for="accessType">Access Type</label>
+                            <InputSelect id="accessType" @bind-Value="user.AccessType" class="form-control">
+                                <option value="Grouped">Grouped</option>
+                                <option value="Custom">Custom</option>
+                            </InputSelect>
+                        </div>
+                    }
+
+                </ModalBody>
+                <ModalFooter>
+                    <Button Color="Color.Secondary" Size="Size.Small" Clicked="@HideModal">Close</Button>
+                    <Button Color="Color.Primary" Size="Size.Small" Type="ButtonType.Submit">Save</Button>
+                </ModalFooter>
+            </EditForm>
+        </ModalContent>
+    </Modal>
+}
+
+
+@code {
+
+    private Modal modalRef;
+    private UserModel emptyuser = new();
+    private UserModel user = new();
+    UserModel userSelected = new();
+    List<Roles> roles = new();
+    private string NewRecord = string.Empty;
+    private string title { get; set; }
+    int index = -1;
+
+    private async Task SubmitUser()
+    {
+
+        var httpRequest = await http.PostAsJsonAsync("api/User/SaveUserData", user);
+        if (httpRequest.IsSuccessStatusCode)
+        {
+            var responseString = await httpRequest.Content.ReadAsStringAsync();
+            UpdateResult model = JsonSerializer.Deserialize<UpdateResult>(responseString,
+              new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+
+            if (model.data is not null && model.count > 0)
+            {
+
+                if (model.IsUpdate)
+                {
+                    if (index != -1)
+                    {
+                        users.Insert(index, model.data);
+                    }
+                }
+                else
+                {
+
+                    users.Add(model.data);
+                }
+                index = -1;
+            }
+
+            //Console.WriteLine(responseString);
+            //NewRecord = "Save successfully";
+
+            modalRef.Hide();
+            user = new();
+        }
+    }
+
+    public class UpdateResult
+    {
+        public UserModel data { get; set; }
+        public int count { get; set; }
+        public bool IsUpdate { get; set; }
+    }
+
+    private async Task LoadUser()
+    {
+        users = await http.GetFromJsonAsync<List<UserModel>>("api/User/GetUsers");
+        roles = await http.GetFromJsonAsync<List<Roles>>("api/User/GetRoles");
+    }
+    //private void OnModalClosing(ModalClosingEventArgs e)
+    //{
+    //    user = new();
+    //    modalRef.clo
+
+    //    if (userSelected.Id > 0 && index > -1)
+    //    {
+    //        users.Insert(index, userSelected);
+    //    }
+    //}
+    private void HideModal()
+    {
+        user = new();
+        modalRef.Hide();
+
+        if (userSelected.Id > 0 && index > -1)
+        {
+            users.Insert(index, userSelected);
+            userSelected = new();
+        }
+        this.StateHasChanged();
+    }
+    List<UserModel> users = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        await LoadUser();
+    }
+
+    private void AddEditUser(UserModel selectedUser, bool IsEdit)
+    {
+
+        modalRef.Show();
+        Console.WriteLine(selectedUser.Username);
+        if (selectedUser.Id > 0)
+        {
+            userSelected = new UserModel
+            {
+                Id = selectedUser.Id,
+                Username = selectedUser.Username,
+                RoleId = selectedUser.RoleId,
+                RoleName = selectedUser.RoleName,
+                Name = selectedUser.Name,
+                AccessType = selectedUser.AccessType,
+                IsActive = selectedUser.IsActive
+            };
+
+            this.user = userSelected;
+            title = "Update user";
+            index = users.FindIndex(x => x.Id == selectedUser.Id);
+            users.RemoveAt(index);
+        }
+        else
+        {
+            index = -1;
+            title = "Create new user";
+        }
+
+
+    }
+}

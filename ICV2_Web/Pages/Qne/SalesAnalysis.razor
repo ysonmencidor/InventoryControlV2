@@ -1,0 +1,319 @@
+﻿@page "/SalesAnalysis"
+@using System.Text.Json;
+@using System.IO
+@using ClosedXML.Excel;
+@using ICV2_Web.JSHelper
+@attribute [Authorize(Roles = "Administrator,User")]
+@implements IDisposable
+@inject AppState AppState
+@inject HttpClient http
+@inject IJSRuntime js
+
+<div class="card shadow">
+    @if (formModel != null)
+    {
+    <EditForm Model="formModel" OnSubmit="GenerateReport">
+        <div class="card-header bg-secondary text-white">
+            Sales Analysis
+        </div>
+        <div class="card-body">
+            <div class="form-group row">
+                <label for="datefrom" class="col-sm-2 col-form-label">Date from</label>
+                <div class="col-sm-10">
+                    <InputDate id="datefrom" @bind-Value="formModel.DateFrom" class="form-control" />
+                </div>
+            </div>
+            <div class="form-group row">
+                <label for="dateTo" class="col-sm-2 col-form-label">Date to</label>
+                <div class="col-sm-10">
+                    <InputDate id="dateTo" @bind-Value="formModel.DateTo" class="form-control" />
+                </div>
+            </div>
+        </div>
+
+        <div class="card-header bg-secondary text-center text-white">
+            Filter
+        </div>
+        <div class="card-body">
+
+            <div class="form-group row">
+                <label for="salesperson" class="col-sm-2 col-form-label">Sales Rep.</label>
+                <div class="col-sm-4">
+                    <InputSelect id="salesperson" @bind-Value="formModel.SalesPersonCode" class="form-control">
+                        <option value="%%">All</option>
+                        @if (salesPersons is not null)
+                            {
+                            @foreach (var item in salesPersons)
+                                {
+                                <option value="@item.StaffCode">@item.StaffCode</option>
+                                }
+                            }
+                    </InputSelect>
+                </div>
+                <label for="debtor" class="col-sm-2 col-form-label">Customer</label>
+                <div class="col-sm-4">
+                    <InputSelect id="debtor" @bind-Value="formModel.DebtorCode" class="form-control">
+                        <option value="%%">All</option>
+                        @if (debtors is not null)
+                            {
+                            @foreach (var item in debtors)
+                                {
+                                <option value="@item.CompanyCode">@item.CompanyName</option>
+                                }
+                            }
+                    </InputSelect>
+                </div>
+            </div>
+        </div>
+        <div class="card-header bg-secondary text-center text-white">
+            Options
+        </div>
+        <div class="card-body ">
+            <div class="d-flex justify-content-center">
+                <div class="form-check form-check-inline">
+                    <InputCheckbox @bind-Value="formModel.IncludeGST" class="form-check-input" id="gst"></InputCheckbox>
+                    <label class="form-check-label" for="gst">Include GST</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <InputCheckbox @bind-Value="formModel.IncludeDN" class="form-check-input" id="dn"></InputCheckbox>
+                    <label class="form-check-label" for="dn">Include DN</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <InputCheckbox @bind-Value="formModel.includeCN" class="form-check-input" id="cn"></InputCheckbox>
+                    <label class="form-check-label" for="cn">Include CN</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <InputCheckbox @bind-Value="formModel.includeCS" class="form-check-input" id="cs"></InputCheckbox>
+                    <label class="form-check-label" for="gs">Include CS</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <InputCheckbox @bind-Value="formModel.stockControlOnly" class="form-check-input" id="sco"></InputCheckbox>
+                    <label class="form-check-label" for="sco">Stock Control Only</label>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-outline-info">Generate Report</button>
+            </div>
+        </div>
+    </EditForm>
+    }
+</div>
+
+@code {
+
+    SALESANALYSISFILTER formModel = new();
+
+
+    private List<SalesPersons> salesPersons { get; set; } = new List<SalesPersons>();
+    private List<Debtors> debtors { get; set; } = new List<Debtors>();
+
+    private async Task GenerateReport()
+    {
+        formModel.CompanyCode = AppState.selectedCompanyCode;
+
+        var httpRequest = await http.PostAsJsonAsync("api/Report/GenerateSalesAnalysis", formModel);
+
+        if (httpRequest.IsSuccessStatusCode)
+        {
+            var responseString = await httpRequest.Content.ReadAsStringAsync();
+
+            //Console.WriteLine(responseString);
+            var data = JsonSerializer.Deserialize<List<SALESANALYSISRESULT>>(responseString,
+              new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+
+            GenerateExcel(data);
+
+
+            //GenerateExcel(Result);
+
+        }
+    }
+
+    private async Task LoadData()
+    {
+        salesPersons = await http.GetFromJsonAsync<List<SalesPersons>>("api/Qne/GetSalesPersons?companyCode=" + AppState.selectedCompanyCode);
+        debtors = await http.GetFromJsonAsync<List<Debtors>>("api/Qne/GetDebtors?companyCode=" + AppState.selectedCompanyCode);
+    }
+
+    private async void GenerateExcel(List<SALESANALYSISRESULT> data)
+    {
+        using (XLWorkbook wb = new XLWorkbook())
+        {
+
+            int rowNumber = 0;
+
+            IXLWorksheet ws = wb.Worksheets.Add("Batch No. Balance Details");
+            IXLCell cell;
+
+            cell = ws.Cell("A" + ++rowNumber).SetValue(formModel.CompanyCode);
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("A" + ++rowNumber).SetValue("Date From ");
+            cell.Style.Font.Bold = true;
+            cell = ws.Cell("B" + rowNumber).SetValue(formModel.DateFrom?.ToShortDateString());
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("A" + ++rowNumber).SetValue("Date To ");
+            cell.Style.Font.Bold = true;
+            cell = ws.Cell("B" + rowNumber).SetValue(formModel.DateTo?.ToShortDateString());
+            cell.Style.Font.Bold = true;
+
+
+            #region Excel header
+            cell = ws.Cell("A" + ++rowNumber).SetValue("DOCSALEPERSON CODE");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("B" + rowNumber).SetValue("DOCTYPE");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("C" + rowNumber).SetValue("DOC #");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("D" + rowNumber).SetValue("DOC DATE");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("E" + rowNumber).SetValue("DEBTORCODE");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("F" + rowNumber).SetValue("DEBTORNAME");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("G" + rowNumber).SetValue("STOCKCODE");
+            cell.Style.Font.Bold = true;
+
+
+            cell = ws.Cell("H" + rowNumber).SetValue("STOCKNAME");
+            cell.Style.Font.Bold = true;
+
+
+            cell = ws.Cell("I" + rowNumber).SetValue("SALES QTY");
+            cell.Style.Font.Bold = true;
+
+
+            cell = ws.Cell("J" + rowNumber).SetValue("SALES VALUE");
+            cell.Style.Font.Bold = true;
+
+
+            cell = ws.Cell("K" + rowNumber).SetValue("ITEM UNIT PRICE");
+            cell.Style.Font.Bold = true;
+
+
+            cell = ws.Cell("L" + rowNumber).SetValue("ITEM DISCOUNT");
+            cell.Style.Font.Bold = true;
+
+
+            cell = ws.Cell("M" + rowNumber).SetValue("DESCRIPTION");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("N" + rowNumber).SetValue("PROJECT CODE");
+            cell.Style.Font.Bold = true;
+            cell = ws.Cell("O" + rowNumber).SetValue("STOCK LOCATIONCODE");
+            cell.Style.Font.Bold = true;
+            cell = ws.Cell("P" + rowNumber).SetValue("DEBTOR CATEGORY");
+            cell.Style.Font.Bold = true;
+            cell = ws.Cell("Q" + rowNumber).SetValue("CUSTOMER AREA");
+            cell.Style.Font.Bold = true;
+            cell = ws.Cell("R" + rowNumber).SetValue("STOCK CLASS");
+            cell.Style.Font.Bold = true;
+
+
+            #endregion
+            foreach (SALESANALYSISRESULT result in data)
+            {
+                rowNumber++;
+                cell = ws.Cell("A" + rowNumber).SetValue(result.DocSalesPersonCode);
+                cell = ws.Cell("B" + rowNumber).SetValue(result.DocType);
+                cell = ws.Cell("C" + rowNumber).SetValue(result.DocumentCode);
+                cell = ws.Cell("D" + rowNumber).SetValue(result.DocumentDate);
+                cell = ws.Cell("E" + rowNumber).SetValue(result.CustomerCode);
+                cell = ws.Cell("F" + rowNumber).SetValue(result.CustomerName);
+                cell = ws.Cell("G" + rowNumber).SetValue(result.StockCode);
+                cell = ws.Cell("H" + rowNumber).SetValue(result.StockName);
+                cell = ws.Cell("I" + rowNumber).SetValue(result.ItemQty);
+                cell = ws.Cell("J" + rowNumber).SetValue(result.ItemValue);
+                cell = ws.Cell("K" + rowNumber).SetValue(result.ItemUnitPrice);
+                cell = ws.Cell("L" + rowNumber).SetValue(result.ItemDiscountAmount);
+                cell = ws.Cell("M" + rowNumber).SetValue(result.Description);
+                cell = ws.Cell("N" + rowNumber).SetValue(result.ProjectCode);
+                cell = ws.Cell("O" + rowNumber).SetValue(result.StockLocationName);
+                cell = ws.Cell("P" + rowNumber).SetValue(result.DebtorCategoryName);
+                cell = ws.Cell("Q" + rowNumber).SetValue(result.DebtorAreaCode);
+                cell = ws.Cell("R" + rowNumber).SetValue(result.StockClassName);
+
+
+            }
+
+            ws.Column("A").Width = 15;
+            ws.Column("B").Width = 15;
+            ws.Column("C").Width = 15;
+            ws.Column("D").Width = 15;
+            ws.Column("E").Width = 15;
+            ws.Column("F").Width = 15;
+            ws.Column("G").Width = 15;
+            ws.Column("H").Width = 15;
+            ws.Column("I").Width = 15;
+            ws.Column("J").Width = 15;
+            ws.Column("K").Width = 15;
+            ws.Column("L").Width = 15;
+            ws.Column("M").Width = 15;
+            ws.Column("N").Width = 15;
+            ws.Column("O").Width = 15;
+            ws.Column("P").Width = 15;
+            ws.Column("Q").Width = 15;
+            ws.Column("R").Width = 15;
+
+
+            if (wb.Worksheets.Count > 0)
+            {
+                MemoryStream ms = GetStream(wb);
+                byte[] bytes = ms.ToArray();
+                ms.Close();
+
+                await js.SaveAsFileAsync("SALES_ANALYSIS__" + formModel.DateFrom?.ToShortDateString() + "-" + formModel.DateTo?.ToShortDateString(), bytes, "application/vnd.ms-excel");
+            }
+            else
+            {
+                await js.InvokeVoidAsync("alert", "No record found.");
+            }
+
+        }
+    }
+    private MemoryStream GetStream(XLWorkbook excelWorkbook)
+    {
+        MemoryStream fs = new MemoryStream();
+        excelWorkbook.SaveAs(fs);
+        fs.Position = 0;
+        return fs;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState.CompanyReady())
+        {
+            await LoadData();
+        }
+    }
+    private async Task AppState_StateChanged(ComponentBase Source, string Property)
+    {
+        if (Source != this)
+        {
+            if (AppState.CompanyReady())
+            {
+                await LoadData();
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    protected override void OnInitialized()
+    {
+        AppState.StateChanged += async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+    void IDisposable.Dispose()
+    {
+        AppState.StateChanged -= async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+
+}

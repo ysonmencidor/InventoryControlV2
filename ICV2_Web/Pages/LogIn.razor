@@ -1,0 +1,92 @@
+﻿@layout AccountLayout
+
+@page "/Login"
+@using DataAccessLibrary.Models
+@inject IAuthenticationService AuthService
+@inject NavigationManager NavManager
+
+
+
+<div class="card shadow mt-3">
+    <div class="card-header bg-secondary text-white">
+        Log in
+    </div>
+    <div class="card-body">
+        <EditForm Model="model" OnValidSubmit="ExecuteLogin">
+            <DataAnnotationsValidator />
+            <div class="form-group">
+                <label for="username">Username </label>
+                    <InputText id="username" class="form-control form-control-sm" @bind-Value="model.Username"></InputText>
+                    <ValidationMessage For="@(() => model.Username)" />
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                    <InputText id="password" type="password" class="form-control form-control-sm" @bind-Value="model.Password"></InputText>
+                    <ValidationMessage For="@(() => model.Password)" />
+            </div>
+            <div class="row">
+                <div class="col-md-12 text-right">
+                    <button type="submit" class="btn btn-success btn-sm shadow">Log in</button>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+@if (showAuthenticationError)
+{
+    <div class="alert alert-danger" role="alert">
+        <p>@authenticationErrorText</p>
+    </div>
+}
+@if (!string.IsNullOrEmpty(Authenticating))
+{
+    <em class="text-success">@Authenticating</em>
+}
+@code {
+
+    [CascadingParameter]
+    public Task<AuthenticationState> authenticationState { get; set; }
+
+    private AuthenticationUserModel model = new AuthenticationUserModel();
+
+    private bool showAuthenticationError = false;
+    private string authenticationErrorText = "";
+    private string Authenticating = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = (await authenticationState).User;
+
+        if (authState.Identity.IsAuthenticated)
+        {
+            NavManager.NavigateTo("/");
+        }
+    }
+
+    private async Task ExecuteLogin()
+    {
+
+        Authenticating = "Signing in...";
+        showAuthenticationError = false;
+
+        var model2 = new UserModel
+        {
+            Username = model.Username,
+            Password = model.Password
+        };
+
+        var result = await AuthService.Login(model2);
+
+
+        if (result is not null)
+        {
+            NavManager.NavigateTo("/");
+        }
+        else
+        {
+            authenticationErrorText = "There was an error when trying to log in.";
+            showAuthenticationError = true;
+            Authenticating = string.Empty;
+        }
+    }
+}

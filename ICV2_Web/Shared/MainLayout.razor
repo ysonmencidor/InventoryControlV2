@@ -1,0 +1,317 @@
+﻿@inherits LayoutComponentBase
+@inject HttpClient http
+@inject NavigationManager NavigationManager
+@inject IAuthenticationService authService
+
+@if (!IsPasswordDefault)
+{
+
+    <Layout Sider="true">
+        <LayoutSider>
+            <LayoutSiderContent>
+                <Bar Breakpoint="Breakpoint.Desktop"
+                     NavigationBreakpoint="Breakpoint.Tablet"
+                     Mode="BarMode.VerticalInline"
+                     CollapseMode="BarCollapseMode.Small"
+                     @bind-Visible="siderVisible">
+                    <BarBrand>
+                        <BarItem>
+                            <BarLink To="">
+                                <img class="img-fluid" style="max-height:40px;padding:0px;border-style:none" src="../images/nav-logo.png" />
+                            </BarLink>
+                        </BarItem>
+                    </BarBrand>
+                    <BarMenu>
+                        <BarStart>
+
+                            <BarItem Class="mt-2">
+                                <BarLink To="">
+                                    <BarIcon IconName="IconName.Home" />
+                                    Home
+                                </BarLink>
+                            </BarItem>
+                            <AuthorizeView Roles="Administrator">
+                                <BarItem>
+                                    <BarDropdown>
+                                        <BarDropdownToggle>
+                                            <BarIcon IconName="Blazorise.Icons.FontAwesome.FontAwesomeIcons.Cogs" />
+                                            User management
+                                        </BarDropdownToggle>
+                                        <BarDropdownMenu>
+                                            <BarDropdownItem To="users">
+                                                Account Entry
+                                            </BarDropdownItem>
+                                            <BarDropdownItem To="access">
+                                                User access (Custom)
+                                            </BarDropdownItem>
+                                            <BarDropdownItem To="usergroup">
+                                                Group access
+                                            </BarDropdownItem>
+                                        </BarDropdownMenu>
+                                    </BarDropdown>
+                                </BarItem>
+                            </AuthorizeView>
+                            @if (menuList == null)
+                            {
+                                <BarItem>
+                                    <BarLabel>
+                                        Loading user access.
+                                    </BarLabel>
+                                </BarItem>
+                            }
+                            else
+                            {
+                                <Divider DividerType="DividerType.TextContent" Text="QNE" />
+                                @foreach (var mn in menuList)
+                                {
+                                    if (mn.ParentMenuId == 0)
+                                    {
+                                        <BarItem>
+                                            <BarDropdown>
+                                                <BarDropdownToggle>
+                                                    <BarIcon />
+                                                    @mn.MenuName
+                                                </BarDropdownToggle>
+
+                                                <BarDropdownMenu>
+                                                    @foreach (var mn1 in menuList)
+                                                    {
+                                                        @if (mn.MenuId == mn1.ParentMenuId)
+                                                        {
+                                                            <BarDropdownItem To="@mn1.PageName">
+                                                                @mn1.MenuName
+                                                            </BarDropdownItem>
+                                                        }
+                                                    }
+                                                </BarDropdownMenu>
+                                            </BarDropdown>
+                                        </BarItem>
+                                    }
+                                }
+                            }
+                        </BarStart>
+                        <BarEnd>
+                            <BarLabel>Nutratech Biopharma Inc.</BarLabel>
+                        </BarEnd>
+                    </BarMenu>
+                </Bar>
+            </LayoutSiderContent>
+        </LayoutSider>
+        <Layout>
+            <LayoutHeader Fixed="true">
+                <Bar Style="height: 64px;"
+                     Breakpoint="Breakpoint.Desktop"
+                     NavigationBreakpoint="Breakpoint.Tablet"
+                     Background="Background.Transparent">
+                    <BarToggler Clicked="@ToggleSidebar" Style="display:block" />
+                    <BarBrand>
+                        <BarItem Class="ml-4">
+                            <Addons>
+                                <Addon AddonType="AddonType.Start">
+                                    <AddonLabel>Company</AddonLabel>
+                                </Addon>
+                                <Addon AddonType="AddonType.Body">
+                                    <ToolBar />
+                                </Addon>
+                            </Addons>
+                        </BarItem>
+                    </BarBrand>
+                    <BarMenu>
+                        <BarStart>
+                            <BarLabel>&nbsp;</BarLabel>
+                        </BarStart>
+                        <BarEnd>
+                            <BarItem>
+                                <BarDropdown>
+                                    <BarDropdownToggle>
+                                        <Icon Name="IconName.User" />
+                                        @if (!string.IsNullOrEmpty(Username))
+                                        {@Username  }
+                                    </BarDropdownToggle>
+                                    <BarDropdownMenu Style="min-width:50px;" RightAligned="true">
+                                        <BarDropdownItem To="Profile">
+                                            <Icon Name="Blazorise.Icons.FontAwesome.FontAwesomeIcons.Cog"></Icon>
+                                            Profile
+                                        </BarDropdownItem>
+                                        <DropdownDivider />
+                                        <BarDropdownItem To="logout">
+                                            <Icon Name="Blazorise.Icons.FontAwesome.FontAwesomeIcons.SignOutAlt"></Icon>
+                                            Log Out
+                                        </BarDropdownItem>
+                                    </BarDropdownMenu>
+                                </BarDropdown>
+                            </BarItem>
+                            <BarItem>
+                                <BarLabel>&nbsp;</BarLabel>
+                            </BarItem>
+                        </BarEnd>
+                    </BarMenu>
+                </Bar>
+            </LayoutHeader>
+            <LayoutContent Class="content px-4">
+                <div class="container">
+                    @Body
+                </div>
+            </LayoutContent>
+        </Layout>
+    </Layout>
+}
+else
+{
+
+
+    <style>
+        body {
+            background-color: #dedede;
+        }
+    </style><div class="container">
+        <div class="row">
+            <div class="col-md-4 offset-md-4 col-lg-4 offset-lg-4 col-12 mt-3">
+                <div class="card shadow">
+                    <div class="card-header bg-secondary text-white">
+                        Please change your default password
+                    </div>
+                    <div class="card-body">
+                        @if (!ChangePassSucces)
+                        {
+                            <EditForm Model="DefaultPassmodel" OnValidSubmit="ChangePass">
+                                <DataAnnotationsValidator />
+                                <Microsoft.AspNetCore.Components.Forms.ValidationSummary />
+
+                                <div class="form-group">
+                                    <label for="uname">Username</label>
+                                    <InputText id="uname" disabled="disabled" class="form-control" @bind-Value="DefaultPassmodel.Username"></InputText>
+                                </div>
+                                <div class="form-group">
+                                    <label for="password">New Password</label>
+                                    <InputText type="password" id="password" class="form-control" @bind-Value="DefaultPassmodel.NewPassword"></InputText>
+                                </div>
+                                <div class="form-group">
+                                    <label for="repeatpassword">Confirm New Password</label>
+                                    <InputText type="password" id="repeatpassword" class="form-control" @bind-Value="DefaultPassmodel.RepeatPassword"></InputText>
+                                </div>
+
+                                <div class="d-flex justify-content-center">
+                                    <button type="submit" class="btn btn-success btn-sm shadow">Change Password</button>
+                                </div>
+                            </EditForm>
+                        }
+                        else
+                        {
+                            <p>Change password successfully, please relogin. <a href="#" @onclick="signout">here</a> </p>
+                        }
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-end">
+                            <button @onclick="signout" class="btn btn-outline-info btn-sm shadow">Sign out</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+<MySpinner />
+
+@code{
+
+    private IEnumerable<MenuInfo> menuList;
+
+    private bool siderVisible = true;
+    private DefaultPass DefaultPassmodel = new();
+    private bool ChangePassSucces = false;
+    //protected override async Task OnInitializedAsync()
+    //{
+
+    //    //User = await AppState.WhosUserIsIn();
+
+    //}
+    private async Task AdminMenu()
+    {
+        menuList = await http.GetFromJsonAsync<IEnumerable<MenuInfo>>("api/Navigation/GetNavMenu");
+    }
+    private async Task LoadMenu(int UserId)
+    {
+        menuList = await http.GetFromJsonAsync<IEnumerable<MenuInfo>>("api/Navigation/GetUserGroupedMenu?UserId=" + UserId);
+
+    }
+
+    private async Task ChangePass()
+    {
+        var httpRequest = await http.PostAsJsonAsync("api/User/changePFromDefault", DefaultPassmodel);
+        if (httpRequest.IsSuccessStatusCode)
+        {
+            var content = await httpRequest.Content.ReadAsStringAsync();
+            if (Convert.ToInt32(content) > 0)
+            {
+                ChangePassSucces = true;
+            }
+        }
+    }
+
+    [CascadingParameter]
+    public Task<AuthenticationState> authenticationState { get; set; }
+    private string Username = string.Empty;
+    public bool IsPasswordDefault;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var user = (await authenticationState).User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            Username = user.FindFirst(x => x.Type == System.Security.Claims.ClaimTypes.Name).Value;
+            var claim2 = user.FindFirst(x => x.Type == System.Security.Claims.ClaimTypes.NameIdentifier);
+            int u_Id = Convert.ToInt32(claim2.Value);
+
+            IsPasswordDefault = Convert.ToBoolean(user.FindFirst("IsPasswordDefault").Value);
+
+            if (!IsPasswordDefault)
+            {
+                if (user.IsInRole("Administrator"))
+                {
+                    await AdminMenu();
+                }
+                else
+                {
+                    await LoadMenu(u_Id);
+                }
+            }
+            else
+            {
+                DefaultPassmodel.Username = Username;
+            }
+        }
+    }
+
+    void ToggleSidebar()
+    {
+        siderVisible = !siderVisible;
+        StateHasChanged();
+    }
+
+    private async Task signout()
+    {
+        await authService.LogOut();
+        NavigationManager.NavigateTo("/login");
+    }
+
+}
+
+
+
+@*<div class="page">
+        <div class="sidebar">
+            <NavMenu/>
+        </div>
+
+        <div class="main">
+            <div class="top-row px-4">
+                <a href="logout" class="ml-md-auto">Log out</a>
+            </div>
+
+            <div class="content px-4">
+                @Body
+            </div>
+        </div>
+    </div>*@

@@ -1,0 +1,448 @@
+﻿@page "/usergroup"
+@using System.Text.Json;
+@inject HttpClient http
+@inject IJSRuntime js
+<div class="row">
+    <div class="col-md-8 col-lg-8 col-12">
+
+        <div class="card shadow">
+            <div class="card-header bg-secondary text-white">
+                Group Access
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                            <th>No. of users </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (groups != null)
+                        {                      
+                            var xg = groups.GroupBy(x => x.GroupId).Select(grp => new { grp.Key, total = grp.Count() }).ToList();
+                        
+                                  
+                            foreach (var item in groups)
+                            {
+
+                                <tr>
+                                    <td>@item.Name</td>
+                                    <td>
+                                        @if (item.IsActive)
+                                        {
+                                            <em>Active</em>
+                                        }
+                                        else
+                                        {
+                                            <em class="text-muted">Inactive</em>
+                                        }
+                                    </td>
+                                    <td>
+                                        <Tooltip Text="Edit">
+                                            <button @onclick="(() => ShowGroupForm(item, true))" class="btn btn-sm btn-primary rounded-circle"><Icon Name="IconName.Pen"> Manage</Icon></button>
+                                        </Tooltip>
+                                        <Tooltip Text="Manage">
+                                            <button @onclick="(() => ShowManageForm(item.GroupId, item.Name))" class="btn btn-sm btn-success rounded-circle"><Icon Name="IconName.Server"></Icon></button>
+                                        </Tooltip>
+                                        <Tooltip Text="Add user to this group">
+                                            <button @onclick="(() => ShowUserForGroupForm(item.GroupId))" class="btn btn-info btn-sm rounded-circle"><Icon Name="IconName.UserPlus"></Icon></button>
+                                        </Tooltip>
+                                    </td>
+                                    <td>
+                                     @foreach(var counter in xg)
+                                    {
+                                        if(counter.Key == item.GroupId)
+                                        {
+                                             <em>@counter.total</em>
+                                        }
+                                    }
+                                    </td>
+  
+                                  </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center">Loading...</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+
+            </div>
+            <div class="card-footer d-flex justify-content-end">
+                <button @onclick="(() => ShowGroupForm(model, false))" class="btn btn-sm btn-outline-info rounded"><Icon Name="IconName.FolderPlus"></Icon> Create</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@if (model != null)
+{
+    <Modal @ref="modalRef">
+        <ModalContent Centered="true">
+            <EditForm Model="model" autocomplete="false" OnValidSubmit="SubmitForm">
+                <DataAnnotationsValidator />
+                <Microsoft.AspNetCore.Components.Forms.ValidationSummary />
+                <ModalHeader>
+                    <ModalTitle>@title</ModalTitle>
+                    <CloseButton Clicked="@HideModal" />
+                </ModalHeader>
+                <ModalBody>
+                    <Field>
+                        <FieldLabel>Name</FieldLabel>
+                        <TextEdit @bind-value="model.Name" @bind-Text="model.Name" Placeholder="Enter group name" />
+                    </Field>
+                    <Field>
+                        <FieldLabel>Status</FieldLabel>
+                        <RadioGroup @bind-CheckedValue="model.IsActive" TValue="Boolean">
+                            <Radio Value="true">Active</Radio>
+                            <Radio Value="false">Inactive</Radio>
+                        </RadioGroup>
+                    </Field>
+
+                </ModalBody>
+                <ModalFooter>
+                    <Button Color="Color.Secondary" Size="Size.Small" Clicked="@HideModal">Cancel</Button>
+                    <Button Color="Color.Primary" Size="Size.Small" Type="ButtonType.Submit">Save</Button>
+                </ModalFooter>
+            </EditForm>
+        </ModalContent>
+    </Modal>
+}
+
+<Modal @ref="modalManage">
+    <ModalContent Size="ModalSize.Large" Centered="true">
+        <ModalHeader>
+            <ModalTitle>Module Assignment for <em>@selectedGroupName</em> group</ModalTitle>
+            <CloseButton Clicked="@HideModal" />
+        </ModalHeader>
+        <ModalBody>
+
+            <div class="row">
+                <div class="col-6">
+                    <table class="table">
+                        <thead class="bg-secondary text-white">
+                            <tr>
+                                <th class="text-center">Assigned Module</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (assignedMenus != null)
+                            {
+                                @foreach (var mn in assignedMenus)
+                                {
+                                      <tr>
+                                        <td>@mn.MenuName</td>
+                                        <td><button @onclick="(()=> RemoveAssigned(mn))" class="btn btn-danger btn-sm rounded-circle"><Icon Name="IconName.Remove"></Icon></button></td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-6">
+                    <table class="table">
+                        <thead class="bg-secondary text-white">
+                            <tr>
+                                <th></th>
+                                <th class="text-center">Un-Assigned Module</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                           @if (menuList != null)
+                           {
+                            @foreach (var mn in menuList)
+                            {
+                                if (mn.ParentMenuId == 0)
+                                {
+                                <tr>
+                                    <td><button @onclick="(() => Assign(mn.MenuId,mn.MenuName))" class="btn btn-success btn-sm rounded-circle"><Icon Name="IconName.Add"></Icon></button></td>
+                                    <td>@mn.MenuName</td>
+                                </tr>
+                                }
+                            }
+                           }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </ModalBody>
+        </ModalContent>
+    </Modal>
+
+<Modal @ref="modalUserRef">
+    <ModalContent>
+        <ModalHeader>
+
+        </ModalHeader>
+        <ModalBody>
+            <div class="row">
+                <div class="col-12">
+                    <EditForm Model="MenuAccessModel" OnSubmit="AddUserToGroup">
+                        <Addons>
+                            <Addon AddonType="AddonType.Body">
+                                <Blazorise.Select TValue="int" @bind-SelectedValue="@MenuAccessModel.UserId">
+                                    <option value="0">-Select User-</option>
+                                    @if (users != null)
+                                    { 
+                                        @foreach (var item in users)
+                                        {
+                                            <option value="@item.Id">@item.Name</option>
+                                        }
+                                    }
+                                </Blazorise.Select>
+                                
+                            </Addon>
+                            <Addon AddonType="AddonType.End">
+                                <Button Type="ButtonType.Submit" Color="Color.Secondary">Add</Button>
+                            </Addon>
+                        </Addons>
+                    </EditForm>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    
+                    <Table Hoverable="true">
+                        <TableHeader ThemeContrast="ThemeContrast.Light">
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                                <th></th>
+                            </tr>
+                        </TableHeader>
+                        <TableBody>
+                          @foreach(var item in menuAccesses)
+                          {
+                              int counter = menuAccesses.IndexOf(item) + 1;
+                            <TableRow>
+                                <TableRowCell>
+                                  @counter
+                                </TableRowCell>
+                                <TableRowCell>
+                                    @item.Name
+                                </TableRowCell>
+                                <TableRowCell>
+                                    
+                                </TableRowCell>
+                            </TableRow>
+                           }
+                        </TableBody>
+                      
+                    </Table>
+
+                </div>
+            </div>
+        </ModalBody>
+    </ModalContent>
+</Modal>
+        @code {
+            private Modal modalManage;
+            private Modal modalRef;
+            private Modal modalUserRef;
+
+            private UserModel DDLUserSelected;
+            private int SelectedUserId;
+            private int SelectedGroupId = 0;
+            private string selectedGroupName = string.Empty;
+            Group selectedGroup = new();
+            private MenuAccess MenuAccessModel = new();
+
+            private List<MenuAccess> menuAccesses { get; set; } = new List<MenuAccess>();
+            private List<UserModel> users { get; set; } = new List<UserModel>();
+            private List<MenuInfo> menuList { get; set; } = new List<MenuInfo>();
+            private List<AssignedMenu> assignedMenus { get; set; } = new List<AssignedMenu>();
+
+            Group model = new();
+            private string title { get; set; }
+            private List<Group> groups { get; set; } = new List<Group>();
+            private async Task RemoveAssigned(AssignedMenu assignedMenu)
+            {
+                var httprequest = await http.PostAsJsonAsync("api/Navigation/UnAssigMenu", assignedMenu);
+                if (httprequest.IsSuccessStatusCode)
+                {
+                    assignedMenus.RemoveAll(x => x.GroupedMenuId == assignedMenu.GroupedMenuId);
+
+                    var responseString = await httprequest.Content.ReadAsStringAsync();
+
+                    var data = JsonSerializer.Deserialize<MenuInfo>(responseString,
+                        new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+
+                    menuList.Add(data);
+                }
+            }
+            private async Task Assign(int menuId,string MenuName)
+            {
+                GroupedMenu model = new GroupedMenu
+                {
+                    GroupId = SelectedGroupId,
+                    MenuId = menuId
+                };
+
+                //Console.WriteLine("GROUP ID IS : " + model.GroupId);
+                //Console.WriteLine("MENU ID IS : " + model.MenuId);
+
+                var httpRequest = await http.PostAsJsonAsync("api/Navigation/AssignMenu", model);
+                if (httpRequest.IsSuccessStatusCode)
+                {
+                    var content = await httpRequest.Content.ReadAsStringAsync();
+
+                    menuList.RemoveAll(x => x.MenuId == menuId);
+
+                    assignedMenus.Add(new AssignedMenu
+                    {
+                        GroupedMenuId = Convert.ToInt32(content),
+                        MenuName=MenuName,
+                        MenuId = menuId
+                    });
+                    //assignedMenus = await http.GetFromJsonAsync<List<AssignedMenu>>("api/Navigation/GetAssignedMenuByGroupId?GroupedId=" + groupid);
+                    //assignedMenus.Add(model);
+                }
+            }
+            private async Task AddUserToGroup()
+            {
+                Console.WriteLine(MenuAccessModel.UserId);
+                if (MenuAccessModel.GroupId > 0 && MenuAccessModel.UserId > 0)
+                {
+                    var name = users.Find(x => x.Id == MenuAccessModel.UserId).Name;
+
+                    if(!string.IsNullOrEmpty(name)){
+                        MenuAccessModel.Name = name;
+                    }
+
+
+                    var httpResponse = await http.PostAsJsonAsync("api/Navigation/InserUserToGroup", MenuAccessModel);
+                    if (httpResponse.IsSuccessStatusCode)
+                    {
+                        var content = await httpResponse.Content.ReadAsStringAsync();
+
+                        var newModel = new MenuAccess
+                        {
+                            MenuAccessId = Convert.ToInt32(content),
+                            GroupId = MenuAccessModel.GroupId,
+                            Name = MenuAccessModel.Name,
+                            UserId = MenuAccessModel.UserId
+                        };
+
+                        menuAccesses.Add(newModel);
+
+                        users.RemoveAll(x => x.Id == newModel.UserId);
+
+                        MenuAccessModel.UserId = 0;
+                        this.StateHasChanged();
+                    }
+
+                    //Console.WriteLine(SelectedUserId);
+                }
+                else
+                {
+                    await js.InvokeVoidAsync("alert", "Please select user.");
+                }
+            }
+            private async Task ShowUserForGroupForm(int groupid)
+            {
+                users = await http.GetFromJsonAsync<List<UserModel>>("api/User/GetUserWithoutGroup");
+                menuAccesses = await http.GetFromJsonAsync<List<MenuAccess>>("api/Navigation/GetUsersOnGroup?GroupId=" + groupid);
+
+                foreach(var item in menuAccesses)
+                {
+                    if (users != null && users.Count > 0)
+                    {
+                        var profileName = users.Find(x => x.Id == item.UserId).Name;
+                        item.Name = profileName;
+                        users.RemoveAll(x => x.Id == item.UserId);
+                    }
+                }
+                SelectedGroupId = groupid;
+                MenuAccessModel.GroupId = SelectedGroupId;
+
+                modalUserRef.Show();
+            }
+            private async Task ShowManageForm(int GroupId,string groupName)
+            {
+                this.SelectedGroupId = GroupId;
+                this.selectedGroupName = groupName;
+                if (this.SelectedGroupId > 0) {
+                    assignedMenus = await http.GetFromJsonAsync<List<AssignedMenu>>("api/Navigation/GetAssignedMenuByGroupId?GroupedId=" + GroupId);
+                    modalManage.Show();
+
+                    menuList = await http.GetFromJsonAsync<List<MenuInfo>>("api/Navigation/GetNavMenu");
+
+                    if (assignedMenus.Count > 0)
+                    {
+                        foreach(var item in assignedMenus)
+                        {
+                            menuList.RemoveAll(x => x.MenuId == item.MenuId);
+                        }
+                    }
+
+
+                }
+
+            }
+
+            private void ShowGroupForm(Group modelselected, bool IsEdit)
+            {
+                if (!IsEdit)
+                {
+                    title = "Add new group";
+                }
+                else
+                {
+                    title = "Update group";
+
+                    selectedGroup = new Group
+                    {
+                        GroupId = modelselected.GroupId,
+                        Name = modelselected.Name,
+                        IsActive = modelselected.IsActive
+                    };
+
+                    this.model = selectedGroup;
+                }
+                modalRef.Show();
+            }
+            private async Task SubmitForm()
+            {
+
+                var httpRequest = await http.PostAsJsonAsync("api/Navigation/SaveGroup", model);
+                if (httpRequest.IsSuccessStatusCode)
+                {
+                    await LoadData();
+                    model = new();
+                    modalRef.Hide();
+                }
+                //Console.WriteLine(model.IsActive);
+            }
+            private void HideModal()
+            {
+                model = new();
+                modalRef.Hide();
+                selectedGroup = new();
+
+                //if (userSelected.Id > 0 && index > -1)
+                //{
+                //    users.Insert(index, userSelected);
+                //}
+
+            }
+
+            protected override async Task OnInitializedAsync()
+            {
+                await LoadData();
+            }
+
+            private async Task LoadData()
+            {
+                groups = await http.GetFromJsonAsync<List<Group>>("api/Navigation/GetGroups");
+            }
+        }

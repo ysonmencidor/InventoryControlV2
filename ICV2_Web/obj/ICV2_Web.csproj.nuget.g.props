@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <RestoreSuccess Condition=" '$(RestoreSuccess)' == '' ">True</RestoreSuccess>
+    <RestoreTool Condition=" '$(RestoreTool)' == '' ">NuGet</RestoreTool>
+    <ProjectAssetsFile Condition=" '$(ProjectAssetsFile)' == '' ">$(MSBuildThisFileDirectory)project.assets.json</ProjectAssetsFile>
+    <NuGetPackageRoot Condition=" '$(NuGetPackageRoot)' == '' ">$(UserProfile)\.nuget\packages\</NuGetPackageRoot>
+    <NuGetPackageFolders Condition=" '$(NuGetPackageFolders)' == '' ">C:\Users\yson\.nuget\packages\</NuGetPackageFolders>
+    <NuGetProjectStyle Condition=" '$(NuGetProjectStyle)' == '' ">PackageReference</NuGetProjectStyle>
+    <NuGetToolVersion Condition=" '$(NuGetToolVersion)' == '' ">5.9.1</NuGetToolVersion>
+  </PropertyGroup>
+  <ItemGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <SourceRoot Include="C:\Users\yson\.nuget\packages\" />
+  </ItemGroup>
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+  </PropertyGroup>
+  <ItemGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <Content Include="$(NuGetPackageRoot)nevaldas.blazor.select2\0.1.0\contentFiles\any\netstandard2.1\Properties\launchSettings.json" Condition="Exists('$(NuGetPackageRoot)nevaldas.blazor.select2\0.1.0\contentFiles\any\netstandard2.1\Properties\launchSettings.json')">
+      <NuGetPackageId>NEvaldas.Blazor.Select2</NuGetPackageId>
+      <NuGetPackageVersion>0.1.0</NuGetPackageVersion>
+      <NuGetItemType>Content</NuGetItemType>
+      <Pack>false</Pack>
+      <Private>False</Private>
+      <Link>Properties\launchSettings.json</Link>
+    </Content>
+  </ItemGroup>
+  <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <Import Project="$(NuGetPackageRoot)nevaldas.blazor.select2\0.1.0\buildTransitive\NEvaldas.Blazor.Select2.props" Condition="Exists('$(NuGetPackageRoot)nevaldas.blazor.select2\0.1.0\buildTransitive\NEvaldas.Blazor.Select2.props')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.aspnetcore.components.webassembly\5.0.4\build\net5.0\Microsoft.AspNetCore.Components.WebAssembly.props" Condition="Exists('$(NuGetPackageRoot)microsoft.aspnetcore.components.webassembly\5.0.4\build\net5.0\Microsoft.AspNetCore.Components.WebAssembly.props')" />
+    <Import Project="$(NuGetPackageRoot)blazorise\0.9.3.4\buildTransitive\Blazorise.props" Condition="Exists('$(NuGetPackageRoot)blazorise\0.9.3.4\buildTransitive\Blazorise.props')" />
+    <Import Project="$(NuGetPackageRoot)blazorise.sidebar\0.9.3.4\buildTransitive\Blazorise.Sidebar.props" Condition="Exists('$(NuGetPackageRoot)blazorise.sidebar\0.9.3.4\buildTransitive\Blazorise.Sidebar.props')" />
+    <Import Project="$(NuGetPackageRoot)blazorise.bootstrap\0.9.3.4\buildTransitive\Blazorise.Bootstrap.props" Condition="Exists('$(NuGetPackageRoot)blazorise.bootstrap\0.9.3.4\buildTransitive\Blazorise.Bootstrap.props')" />
+    <Import Project="$(NuGetPackageRoot)blazored.modal\6.0.1\buildTransitive\Blazored.Modal.props" Condition="Exists('$(NuGetPackageRoot)blazored.modal\6.0.1\buildTransitive\Blazored.Modal.props')" />
+  </ImportGroup>
+  <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <PkgMicrosoft_AspNetCore_Components_WebAssembly_DevServer Condition=" '$(PkgMicrosoft_AspNetCore_Components_WebAssembly_DevServer)' == '' ">C:\Users\yson\.nuget\packages\microsoft.aspnetcore.components.webassembly.devserver\5.0.4</PkgMicrosoft_AspNetCore_Components_WebAssembly_DevServer>
+  </PropertyGroup>
+</Project>

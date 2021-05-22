@@ -1,0 +1,31 @@
+﻿<CascadingValue Value="this">
+    @ChildContent
+</CascadingValue>
+@code {
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    private string selectedCompanyCode = "00";
+    public string AuthUsername { get; private set; }
+    public string SelectedCompanyCode
+    {
+        get
+        {
+            return selectedCompanyCode;
+        }
+        set
+        {
+            selectedCompanyCode = value;
+            StateHasChanged();
+        }
+
+    }
+    [CascadingParameter] public Task<AuthenticationState> authenticationState { get; set; }
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        AuthUsername = (await authenticationState).User.ToString();
+    }
+}

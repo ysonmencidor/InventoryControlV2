@@ -1,0 +1,1182 @@
+﻿@page "/Category"
+@using System.Text.Json;
+@using System.IO
+@using ClosedXML.Excel;
+@using ICV2_Web.JSHelper
+@attribute [Authorize(Roles = "Administrator,User")]
+@implements IDisposable
+@inject AppState AppState
+@inject HttpClient http
+@inject IJSRuntime js
+
+
+<div class="card">
+    @if (formModel != null)
+    {
+        <EditForm id="MyForm" Model="formModel" OnSubmit="GenerateReport">
+            <div class="card-header bg-secondary text-white shadow">
+                Sales Report
+            </div>
+            <div class="card-body">
+
+                <div class="form-group row">
+                    <label for="agents" class="col-sm-2 col-form-label">Agent</label>
+                    <div class="col-sm-10">
+                        <InputSelect id="agents" @bind-Value="formModel.salesPersonCode" class="form-control">
+                            <option value="%%">All</option>
+                                 @if (salesPersons is not null)
+                                {
+                                     @foreach (var item in salesPersons)
+                                    {
+                                    <option value="@item.StaffCode">@item.StaffCode - @item.Name</option>
+                                    }
+                                }
+                        </InputSelect>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="cat" class="col-sm-2 col-form-label">Product Category</label>
+                    <div class="col-sm-10">
+                        <InputSelect id="cat" @bind-Value="formModel.category" class="form-control">
+                            <option value="%%">All</option>
+                            <option value="1">Swine</option>
+                            <option value="2">Poultry</option>
+                            <option value="3">Common</option>
+                        </InputSelect>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="datefrom" class="col-sm-2 col-form-label">Date from</label>
+                    <div class="col-sm-10">
+                        <InputDate id="datefrom" @bind-Value="formModel.DateFrom" class="form-control" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="dateTo" class="col-sm-2 col-form-label">Date to</label>
+                    <div class="col-sm-10">
+                        <InputDate id="dateTo" @bind-Value="formModel.DateTo" class="form-control" />
+                    </div>
+                </div>
+
+                <div class="form-check">
+                    <InputCheckbox class="form-check-input" @bind-Value="formModel.WithVat" id="vat"></InputCheckbox>
+                    <label class="form-check-label" for="vat">With Vat</label>
+                </div>
+
+
+            </div>
+            <div class="card-footer">
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-outline-info">Generate Report</button>
+                </div>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+
+    CATEGORIZEFILTER formModel = new();
+    private List<SalesPersons> salesPersons { get; set; } = new List<SalesPersons>();
+
+    private async Task GenerateReport()
+    {
+        formModel.CompanyCode = AppState.selectedCompanyCode;
+
+        var httpRequest = await http.PostAsJsonAsync("api/Report/GenerateCategorizeReport", formModel);
+
+        if (httpRequest.IsSuccessStatusCode)
+        {
+            var responseString = await httpRequest.Content.ReadAsStringAsync();
+
+            //Console.WriteLine(responseString);
+            var data = JsonSerializer.Deserialize<CATEGORIZE_FINAL>(responseString,
+              new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+
+            GenerateExcel(data.CATEGORIZERESULTS.ToList(),data.CATEGORIZERESULTCREDITS.ToList(),data.SUMMARY_FOR_AGENTS.ToList());
+
+            Console.WriteLine(formModel.category);
+            //GenerateExcel(Result);
+
+        }
+    }
+
+    private async Task LoadData()
+    {
+        salesPersons = await http.GetFromJsonAsync<List<SalesPersons>>("api/Qne/GetSalesPersons?companyCode=" + AppState.selectedCompanyCode);
+    }
+    #region excel
+
+
+    private async void GenerateExcel(List<CATEGORIZERESULT> resultList, List<CATEGORIZERESULT> resultListCredit,List<CATEGORIZE_SUMMARY_AGENT> listagent)
+    {
+        using (XLWorkbook wb = new XLWorkbook())
+        {
+
+            IXLWorksheet ws = wb.Worksheets.Add("SALES REPORT");
+            IXLCell cell;
+
+            IXLAddress TOTAL_SWINE;
+            IXLAddress TOTAL_PULTRY;
+            IXLAddress TOTAL_COMMON;
+            IXLAddress TOTAL_UNCATEGORIZED;
+
+            IXLAddress TOTAL_SALES_RETURN_SWINE;
+            IXLAddress TOTAL_SALES_RETURN_POULTRY;
+            IXLAddress TOTAL_SALES_RETURN_COMMON;
+            IXLAddress TOTAL_SALES_RETURN_UNCATEGORIZED;
+
+            IXLAddress TOTAL_SALES_SWINE;
+            IXLAddress TOTAL_SALES_PULTRY;
+            IXLAddress TOTAL_SALES_COMMON;
+            IXLAddress TOTAL_SALES_UNCATEGORIZED;
+
+            int rowNumber = 0;
+            cell = ws.Cell("A" + ++rowNumber).SetValue(formModel.CompanyCode);
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("A" + ++rowNumber).SetValue("DATE FROM: ");
+            cell.Style.Font.Bold = true;
+
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("B" + rowNumber).SetValue(formModel.DateFrom);
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("A" + ++rowNumber).SetValue("DATE TO: ");
+            cell.Style.Font.Bold = true;
+
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("B" + rowNumber).SetValue(formModel.DateTo?.ToShortDateString().ToString());
+
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+
+            rowNumber++;
+
+            cell = ws.Cell("A" + rowNumber).SetValue("SALES");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Green;
+
+            rowNumber++;
+
+
+
+
+
+            cell = ws.Cell("A" + rowNumber).SetValue("SALES PERSON");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("B" + rowNumber).SetValue("DATE");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("C" + rowNumber).SetValue("DR NO");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("D" + rowNumber).SetValue("CLIENT NAME");
+            cell.Style.Font.Bold = true;
+
+            string selectedCat = formModel.category;
+
+            if (selectedCat == "1")
+            {
+                cell = ws.Cell("E" + rowNumber).SetValue("SWINE");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("F" + rowNumber).SetValue("QTY");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("G" + rowNumber).SetValue("UOM");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("H" + rowNumber).SetValue("UNIT PRICE");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("I" + rowNumber).SetValue("AMOUNT");
+                cell.Style.Font.Bold = true;
+            }
+            else if (selectedCat == "2")
+            {
+                cell = ws.Cell("E" + rowNumber).SetValue("POULTRY");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("F" + rowNumber).SetValue("QTY");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("G" + rowNumber).SetValue("UOM");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("H" + rowNumber).SetValue("UNIT PRICE");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("I" + rowNumber).SetValue("AMOUNT");
+                cell.Style.Font.Bold = true;
+            }
+            else if (selectedCat == "3")
+            {
+                cell = ws.Cell("E" + rowNumber).SetValue("COMMON");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("F" + rowNumber).SetValue("QTY");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("G" + rowNumber).SetValue("UOM");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("H" + rowNumber).SetValue("UNIT PRICE");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("I" + rowNumber).SetValue("AMOUNT");
+                cell.Style.Font.Bold = true;
+            }
+            else
+            {
+                cell = ws.Cell("E" + rowNumber).SetValue("SWINE");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("F" + rowNumber).SetValue("POULTRY");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("G" + rowNumber).SetValue("COMMON");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("H" + rowNumber).SetValue("QTY");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("I" + rowNumber).SetValue("UOM");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("J" + rowNumber).SetValue("UNIT PRICE");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("K" + rowNumber).SetValue("AMOUNT");
+                cell.Style.Font.Bold = true;
+            }
+
+
+            double total_All = 0;
+            double total_Swine = 0;
+            double total_Poultry = 0;
+            double total_Common = 0;
+            double total_UncategorizedProd = 0;
+
+            double total_credit = 0;
+            double credit_swine = 0;
+            double credit_poultry = 0;
+            double credit_common = 0;
+            double credit_uncategorized = 0;
+            double common_swine = 0;
+            double common_poultry = 0;
+            double common_invalid_format = 0;
+            rowNumber++;
+
+            #region
+            foreach (CATEGORIZERESULT item in resultList)
+            {
+
+                cell = ws.Cell("A" + rowNumber).SetValue(item.SALESPERSONCODE);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                cell = ws.Cell("B" + rowNumber).SetValue(item.SALESINVOICEDATE.ToShortDateString().ToString());
+                cell = ws.Cell("C" + rowNumber).SetValue(item.SALESINVOICECODE);
+                cell = ws.Cell("D" + rowNumber).SetValue(item.DEBTOR);
+
+                string CATEGORY = item.SWINE == true ? "SWINE" : item.POULTRY == true ? "POULTRY" : item.COMMON == true ? "COMMON" : "";
+
+
+                if (CATEGORY == "SWINE")
+                {
+                    total_Swine += item.AMOUNT;
+
+                }
+                else if (CATEGORY == "POULTRY")
+                {
+                    total_Poultry += item.AMOUNT;
+                }
+                else if (CATEGORY == "COMMON")
+                {
+                    total_Common += item.AMOUNT;
+                }
+                else if (CATEGORY == "")
+                {
+                    total_UncategorizedProd += item.AMOUNT;
+                }
+
+                if (selectedCat == "1")
+                {
+                    cell = ws.Cell("E" + rowNumber).SetValue(item.DESCRIPTION);
+                    cell = ws.Cell("F" + rowNumber).SetValue(item.QTY);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                    cell = ws.Cell("G" + rowNumber).SetValue(item.UOM);
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    cell = ws.Cell("H" + rowNumber).SetValue(item.UNITPRICE);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                    cell = ws.Cell("I" + rowNumber).SetValue(item.AMOUNT);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                }
+                else if (selectedCat == "2")
+                {
+                    cell = ws.Cell("E" + rowNumber).SetValue(item.DESCRIPTION);
+                    cell = ws.Cell("F" + rowNumber).SetValue(item.QTY);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                    cell = ws.Cell("G" + rowNumber).SetValue(item.UOM);
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    cell = ws.Cell("H" + rowNumber).SetValue(item.UNITPRICE);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                    cell = ws.Cell("I" + rowNumber).SetValue(item.AMOUNT);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                }
+                else if (selectedCat == "3")
+                {
+
+                    cell = ws.Cell("E" + rowNumber).SetValue(item.DESCRIPTION);
+                    cell = ws.Cell("F" + rowNumber).SetValue(item.QTY);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                    cell = ws.Cell("G" + rowNumber).SetValue(item.UOM);
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    cell = ws.Cell("H" + rowNumber).SetValue(item.UNITPRICE);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                    cell = ws.Cell("I" + rowNumber).SetValue(item.AMOUNT);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+
+                    string charlast = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 3, 3);
+
+                    if (charlast == "(S)")
+                    {
+                        common_swine += item.AMOUNT;
+                    }
+                    else if (charlast == "(P)")
+                    {
+                        common_poultry += item.AMOUNT;
+                    }
+                    else
+                    {
+                        common_invalid_format += item.AMOUNT;
+                    }
+
+
+
+
+
+                }
+                else
+                {
+                    cell = ws.Cell("E" + rowNumber).SetValue(item.SWINE == true ? item.DESCRIPTION : "");
+                    cell = ws.Cell("F" + rowNumber).SetValue(item.POULTRY == true ? item.DESCRIPTION : "");
+                    cell = ws.Cell("G" + rowNumber).SetValue(item.COMMON == true ? item.DESCRIPTION : "");
+                    cell = ws.Cell("H" + rowNumber).SetValue(item.QTY);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                    cell = ws.Cell("I" + rowNumber).SetValue(item.UOM);
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    cell = ws.Cell("J" + rowNumber).SetValue(item.UNITPRICE);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                    cell = ws.Cell("K" + rowNumber).SetValue(item.AMOUNT);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+
+                    if (item.COMMON == true)
+                    {
+
+
+
+                        string charlast = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 3, 3); //(P) 3
+
+                        string charlast1 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 3, 3); // - P 3
+
+                        string charlast2 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 5, 5); // ( P ) 5 
+
+                        string charlast3 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 2, 2); // -P 2 
+
+
+
+                        if (charlast == "(S)" || charlast1 == "- S" || charlast2 == "( S )" || charlast3 == "-S" || charlast == "(s)" || charlast1 == "- s" || charlast2 == "( s )" || charlast3 == "-s")
+                        {
+                            common_swine += item.AMOUNT;
+                        }
+                        else if (charlast == "(P)" || charlast1 == "- P" || charlast2 == "( P )" || charlast3 == "-P" || charlast == "(p)" || charlast1 == "- p" || charlast2 == "( p )" || charlast3 == "-p")
+                        {
+                            common_poultry += item.AMOUNT;
+                        }
+                        else
+                        {
+                            common_invalid_format += item.AMOUNT;
+                        }
+
+                    }
+                }
+
+
+                total_All += item.AMOUNT;
+                rowNumber++;
+            }
+            #endregion
+
+
+
+            if (selectedCat == "1")
+            {
+                cell = ws.Cell("H" + rowNumber).SetValue("TOTAL SALES");
+                cell.Style.Font.Bold = true;
+                cell.Style.Font.FontColor = XLColor.Blue;
+
+                cell = ws.Cell("I" + rowNumber).SetValue(total_All);
+                cell.Style.Font.Bold = true;
+                cell.Style.NumberFormat.Format = "#,##0.00";
+
+                cell = ws.Cell("I" + (rowNumber - 1));
+                cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+
+            }
+            else if (selectedCat == "2")
+            {
+                cell = ws.Cell("H" + rowNumber).SetValue("TOTAL SALES");
+                cell.Style.Font.Bold = true;
+                cell.Style.Font.FontColor = XLColor.Blue;
+                cell = ws.Cell("I" + rowNumber).SetValue(total_All);
+                cell.Style.Font.Bold = true;
+                cell.Style.NumberFormat.Format = "#,##0.00";
+                cell = ws.Cell("I" + (rowNumber - 1));
+                cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            }
+            else if (selectedCat == "3")
+            {
+                cell = ws.Cell("H" + rowNumber).SetValue("TOTAL SALES");
+                cell.Style.Font.Bold = true;
+                cell.Style.Font.FontColor = XLColor.Blue;
+                cell = ws.Cell("I" + rowNumber).SetValue(total_All);
+                cell.Style.Font.Bold = true;
+                cell.Style.NumberFormat.Format = "#,##0.00";
+                cell = ws.Cell("I" + (rowNumber - 1));
+                cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            }
+            else
+            {
+                cell = ws.Cell("J" + rowNumber).SetValue("TOTAL SALES");
+                cell.Style.Font.Bold = true;
+                cell.Style.Font.FontColor = XLColor.Blue;
+                cell = ws.Cell("K" + rowNumber).SetValue(total_All);
+                cell.Style.Font.Bold = true;
+                cell.Style.NumberFormat.Format = "#,##0.00";
+                cell = ws.Cell("K" + (rowNumber - 1));
+                cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            }
+
+
+            cell = ws.Cell("A" + ++rowNumber).SetValue("SALES RETURN");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Red;
+
+            //etona
+            cell = ws.Cell("A" + ++rowNumber).SetValue("SALES PERSON");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("B" + rowNumber).SetValue("DATE");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("C" + rowNumber).SetValue("DR NO");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("D" + rowNumber).SetValue("CLIENT NAME");
+            cell.Style.Font.Bold = true;
+
+
+            if (selectedCat == "1")
+            {
+                cell = ws.Cell("E" + rowNumber).SetValue("SWINE");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("F" + rowNumber).SetValue("QTY");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("G" + rowNumber).SetValue("UOM");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("H" + rowNumber).SetValue("UNIT PRICE");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("I" + rowNumber).SetValue("AMOUNT");
+                cell.Style.Font.Bold = true;
+            }
+            else if (selectedCat == "2")
+            {
+                cell = ws.Cell("E" + rowNumber).SetValue("POULTRY");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("F" + rowNumber).SetValue("QTY");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("G" + rowNumber).SetValue("UOM");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("H" + rowNumber).SetValue("UNIT PRICE");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("I" + rowNumber).SetValue("AMOUNT");
+                cell.Style.Font.Bold = true;
+            }
+            else if (selectedCat == "3")
+            {
+                cell = ws.Cell("E" + rowNumber).SetValue("COMMON");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("F" + rowNumber).SetValue("QTY");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("G" + rowNumber).SetValue("UOM");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("H" + rowNumber).SetValue("UNIT PRICE");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("I" + rowNumber).SetValue("AMOUNT");
+                cell.Style.Font.Bold = true;
+            }
+            else
+            {
+                cell = ws.Cell("E" + rowNumber).SetValue("SWINE");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("F" + rowNumber).SetValue("POULTRY");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("G" + rowNumber).SetValue("COMMON");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("H" + rowNumber).SetValue("QTY");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("I" + rowNumber).SetValue("UOM");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("J" + rowNumber).SetValue("UNIT PRICE");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("K" + rowNumber).SetValue("AMOUNT");
+                cell.Style.Font.Bold = true;
+            }
+
+            rowNumber++;
+
+            foreach (CATEGORIZERESULT item in resultListCredit)
+            {
+
+                string CATEGORY = item.SWINE == true ? "SWINE" : item.POULTRY == true ? "POULTRY" : item.COMMON == true ? "COMMON" : "";
+
+                cell = ws.Cell("A" + rowNumber).SetValue(item.SALESPERSONCODE);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                cell = ws.Cell("B" + rowNumber).SetValue(item.DELIVERYORDERDATE.ToShortDateString().ToString());
+                cell = ws.Cell("C" + rowNumber).SetValue(item.CREDITNOTECODE);
+                cell = ws.Cell("D" + rowNumber).SetValue(item.DEBTOR);
+
+
+                if (CATEGORY == "SWINE")
+                {
+                    credit_swine += item.AMOUNT;
+
+                }
+                else if (CATEGORY == "POULTRY")
+                {
+                    credit_poultry += item.AMOUNT;
+                }
+                else if (CATEGORY == "COMMON")
+                {
+                    credit_common += item.AMOUNT;
+                }
+                else if (CATEGORY == "")
+                {
+                    credit_uncategorized += item.AMOUNT;
+                }
+
+                if (selectedCat == "1")
+                {
+                    cell = ws.Cell("E" + rowNumber).SetValue(item.DESCRIPTION);
+                    cell = ws.Cell("F" + rowNumber).SetValue(item.QTY);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                    cell = ws.Cell("G" + rowNumber).SetValue(item.UOM);
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    cell = ws.Cell("H" + rowNumber).SetValue(item.UNITPRICE);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                    cell = ws.Cell("I" + rowNumber).SetValue(item.AMOUNT);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                }
+                else if (selectedCat == "2")
+                {
+                    cell = ws.Cell("E" + rowNumber).SetValue(item.DESCRIPTION);
+                    cell = ws.Cell("F" + rowNumber).SetValue(item.QTY);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                    cell = ws.Cell("G" + rowNumber).SetValue(item.UOM);
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    cell = ws.Cell("H" + rowNumber).SetValue(item.UNITPRICE);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                    cell = ws.Cell("I" + rowNumber).SetValue(item.AMOUNT);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                }
+                else if (selectedCat == "3")
+                {
+
+                    cell = ws.Cell("E" + rowNumber).SetValue(item.DESCRIPTION);
+                    cell = ws.Cell("F" + rowNumber).SetValue(item.QTY);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                    cell = ws.Cell("G" + rowNumber).SetValue(item.UOM);
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    cell = ws.Cell("H" + rowNumber).SetValue(item.UNITPRICE);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                    cell = ws.Cell("I" + rowNumber).SetValue(item.AMOUNT);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+
+                    string charlast = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 3, 3); //(P) 3
+
+                    string charlast1 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 3, 3); // - P 3
+
+                    string charlast2 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 5, 5); // ( P ) 5 
+
+                    string charlast3 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 2, 2); // -P 2 
+
+
+                    if (charlast == "(S)" || charlast1 == "- S" || charlast2 == "( S )" || charlast3 == "-S" || charlast == "(s)" || charlast1 == "- s" || charlast2 == "( s )" || charlast3 == "-s")
+
+                    {
+                        common_swine += item.AMOUNT;
+                    }
+                    else if (charlast == "(P)" || charlast1 == "- P" || charlast2 == "( P )" || charlast3 == "-P" || charlast == "(p)" || charlast1 == "- p" || charlast2 == "( p )" || charlast3 == "-p")
+                    {
+                        common_poultry += item.AMOUNT;
+                    }
+                    else
+                    {
+                        common_invalid_format += item.AMOUNT;
+                    }
+
+
+
+
+
+                }
+                else
+                {
+                    cell = ws.Cell("E" + rowNumber).SetValue(item.SWINE == true ? item.DESCRIPTION : "");
+                    cell = ws.Cell("F" + rowNumber).SetValue(item.POULTRY == true ? item.DESCRIPTION : "");
+                    cell = ws.Cell("G" + rowNumber).SetValue(item.COMMON == true ? item.DESCRIPTION : "");
+                    cell = ws.Cell("H" + rowNumber).SetValue(item.QTY);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                    cell = ws.Cell("I" + rowNumber).SetValue(item.UOM);
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    cell = ws.Cell("J" + rowNumber).SetValue(item.UNITPRICE);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                    cell = ws.Cell("K" + rowNumber).SetValue(item.AMOUNT);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+
+                    if (item.COMMON == true)
+                    {
+
+                        string charlast = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 3, 3); //(P) 3
+
+                        string charlast1 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 3, 3); // - P 3
+
+                        string charlast2 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 5, 5); // ( P ) 5 
+
+                        string charlast3 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 2, 2); // -P 2 
+
+
+                        if (charlast == "(S)" || charlast1 == "- S" || charlast2 == "( S )" || charlast3 == "-S" || charlast == "(s)" || charlast1 == "- s" || charlast2 == "( s )" || charlast3 == "-s")
+
+                        {
+                            common_swine += item.AMOUNT;
+                        }
+                        else if (charlast == "(P)" || charlast1 == "- P" || charlast2 == "( P )" || charlast3 == "-P" || charlast == "(p)" || charlast1 == "- p" || charlast2 == "( p )" || charlast3 == "-p")
+                        {
+                            common_poultry += item.AMOUNT;
+                        }
+                        else
+                        {
+                            common_invalid_format += item.AMOUNT;
+                        }
+
+                    }
+                }
+
+
+                total_All += item.AMOUNT;
+                rowNumber++;
+            }
+            //endeto
+
+            rowNumber++;
+
+            cell = ws.Cell("A" + ++rowNumber).SetValue("SUMMARY");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+
+
+            rowNumber++;
+            rowNumber++;
+
+            cell = ws.Cell("A" + rowNumber).SetValue("SALES");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+
+            cell = ws.Cell("C" + rowNumber).SetValue("SALES RETURN");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+
+            cell = ws.Cell("D" + rowNumber).SetValue("TOTAL SALES");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+
+            cell = ws.Cell("A" + ++rowNumber).SetValue("SWINE");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Black;
+
+            cell = ws.Cell("B" + rowNumber).SetValue(total_Swine);
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.FontColor = XLColor.Red;
+            TOTAL_SWINE = cell.Address;
+
+            cell = ws.Cell("C" + rowNumber).SetValue(credit_swine);
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.FontColor = XLColor.Red;
+            TOTAL_SALES_RETURN_SWINE = cell.Address;
+
+            cell = ws.Cell("D" + rowNumber);
+            cell.FormulaA1 = TOTAL_SWINE.ToString() + "-" + TOTAL_SALES_RETURN_SWINE.ToString();
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.FontColor = XLColor.Green;
+            TOTAL_SALES_SWINE = cell.Address;
+
+            cell = ws.Cell("A" + ++rowNumber).SetValue("POULTRY");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Black;
+
+            cell = ws.Cell("B" + rowNumber).SetValue(total_Poultry);
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.FontColor = XLColor.Red;
+            TOTAL_PULTRY = cell.Address;
+
+            cell = ws.Cell("C" + rowNumber).SetValue(credit_poultry);
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.FontColor = XLColor.Red;
+            TOTAL_SALES_RETURN_POULTRY = cell.Address;
+
+            cell = ws.Cell("D" + rowNumber);
+            cell.FormulaA1 = TOTAL_PULTRY.ToString() + "-" + TOTAL_SALES_RETURN_POULTRY.ToString();
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.FontColor = XLColor.Green;
+            TOTAL_SALES_PULTRY = cell.Address;
+
+
+            cell = ws.Cell("A" + ++rowNumber).SetValue("COMMON");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Black;
+
+
+            cell = ws.Cell("B" + rowNumber).SetValue(total_Common);
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.FontColor = XLColor.Red;
+            TOTAL_COMMON = cell.Address;
+
+            cell = ws.Cell("C" + rowNumber).SetValue(credit_common);
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.FontColor = XLColor.Red;
+            TOTAL_SALES_RETURN_COMMON = cell.Address;
+
+            cell = ws.Cell("D" + rowNumber);
+            cell.FormulaA1 = TOTAL_COMMON.ToString() + "-" + TOTAL_SALES_RETURN_COMMON.ToString();
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.FontColor = XLColor.Green;
+            TOTAL_SALES_COMMON = cell.Address;
+
+
+            cell = ws.Cell("A" + ++rowNumber).SetValue("UNCATEGORIZED PROD");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Black;
+
+            cell = ws.Cell("B" + rowNumber).SetValue(total_UncategorizedProd);
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.FontColor = XLColor.Red;
+            TOTAL_UNCATEGORIZED = cell.Address;
+
+            cell = ws.Cell("C" + rowNumber).SetValue(credit_uncategorized);
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.FontColor = XLColor.Red;
+            TOTAL_SALES_RETURN_UNCATEGORIZED = cell.Address;
+
+            cell = ws.Cell("D" + rowNumber);
+            cell.FormulaA1 = TOTAL_UNCATEGORIZED.ToString() + "-" + TOTAL_SALES_RETURN_UNCATEGORIZED.ToString();
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.FontColor = XLColor.Green;
+            TOTAL_SALES_UNCATEGORIZED = cell.Address;
+
+
+
+
+            double total4 = total_Swine + total_Poultry + total_Common + total_UncategorizedProd;
+            cell = ws.Cell("B" + ++rowNumber).SetValue(total4);
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.FontColor = XLColor.Red;
+
+            double total5 = credit_swine + credit_poultry + credit_common + credit_uncategorized;
+            cell = ws.Cell("C" + rowNumber).SetValue(total5);
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.FontColor = XLColor.Red;
+
+
+            cell = ws.Cell("D" + rowNumber);
+            cell.FormulaA1 = TOTAL_SALES_SWINE.ToString() + "+" + TOTAL_SALES_PULTRY.ToString() + "+" + TOTAL_SALES_COMMON.ToString() + "+" + TOTAL_SALES_UNCATEGORIZED.ToString();
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.FontColor = XLColor.Green;
+
+
+
+
+            cell = ws.Cell("B" + (rowNumber - 1));
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+
+            cell = ws.Cell("C" + (rowNumber - 1));
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+
+            cell = ws.Cell("D" + (rowNumber - 1));
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+
+            rowNumber++;
+
+            cell = ws.Cell("A" + ++rowNumber).SetValue("COMMON - SWINE");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+
+            cell = ws.Cell("B" + rowNumber).SetValue(common_swine);
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Red;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+
+            cell = ws.Cell("A" + ++rowNumber).SetValue("COMMON - POULTRY");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+
+            cell = ws.Cell("B" + rowNumber).SetValue(common_poultry);
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Red;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+
+            cell = ws.Cell("A" + ++rowNumber).SetValue("COMMON - INVALID FORMAT");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+
+            cell = ws.Cell("B" + rowNumber).SetValue(common_invalid_format);
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Red;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+
+            cell = ws.Cell("B" + rowNumber);
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+
+            cell = ws.Cell("B" + ++rowNumber).SetValue(common_swine + common_poultry + common_invalid_format);
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Red;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+
+
+
+            rowNumber++;
+            rowNumber++;
+            rowNumber++;
+
+            cell = ws.Cell("A" + rowNumber).SetValue("SALES AGENT");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("B" + rowNumber).SetValue("SWINE");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("C" + rowNumber).SetValue("POULTRY");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("D" + rowNumber).SetValue("UNCATEGORIZED");
+            cell.Style.Font.Bold = true;
+
+
+            cell = ws.Cell("E" + rowNumber).SetValue("COMMON (SWINE)");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("F" + rowNumber).SetValue("COMMON (POULTRY)");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("G" + rowNumber).SetValue("COMMON (INVALID)");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("H" + rowNumber).SetValue("SALES RETURN (Swine)");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("I" + rowNumber).SetValue("SALES RETURN (Poultry)");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("J" + rowNumber).SetValue("SALES RETURN (Common)");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("K" + rowNumber).SetValue("SALES RETURN (Uncategorized Product)");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("L" + rowNumber).SetValue("TOTAL");
+            cell.Style.Font.Bold = true;
+
+            rowNumber++;
+            int rowpoultry = rowNumber;
+            int rowcommon = rowNumber;
+
+
+            foreach (CATEGORIZE_SUMMARY_AGENT item in listagent)
+            {
+                double swinex = 0;
+                double poultryx = 0;
+                double uncategorized = 0;
+                double C_swinex = 0;
+                double C_poultryx = 0;
+                double C_Uncategorized = 0;
+
+                double credit_swines = 0;
+                double credit_commons = 0;
+                double credit_poultrys = 0;
+                double credit_uncategorizeds = 0;
+
+
+                cell = ws.Cell("A" + rowNumber).SetValue(item.SALESPERSONCODE);
+               
+                foreach (CATEGORIZERESULT item2 in resultListCredit)
+                {
+                    if (item.SALESPERSONCODE == item2.SALESPERSONCODE)
+                    {
+
+                        if (item2.CATEGORY == "SWINE")
+                        {
+                            credit_swines += item2.AMOUNT;
+                        }
+                        if (item2.CATEGORY == "POULTRY")
+                        {
+                            credit_poultrys += item2.AMOUNT;
+                        }
+
+                        if (item2.CATEGORY == "COMMON")
+                        {
+                            credit_commons += item2.AMOUNT;
+                            //string charlast = item2.DESCRIPTION.Substring(item2.DESCRIPTION.Length - 3, 3);
+
+                            //if (charlast == "(S)")
+                            //{
+                            //    C_swinex += item2.AMOUNT;
+                            //}
+                            //else if (charlast == "(P)")
+                            //{
+                            //    C_poultryx += item2.AMOUNT;
+                            //}
+                            //else
+                            //{
+                            //    C_Uncategorized += item2.AMOUNT;
+                            //}
+                        }
+                        if (item2.CATEGORY == "")
+                        {
+                            credit_uncategorizeds += item2.AMOUNT;
+                        }
+
+                    }
+                }
+
+
+                foreach (CATEGORIZERESULT item2 in resultList)
+                {
+                    if (item.SALESPERSONCODE == item2.SALESPERSONCODE)
+                    {
+                        string CATEGORY = item2.SWINE == true ? "SWINE" : item2.POULTRY == true ? "POULTRY" : item2.COMMON == true ? "COMMON" : "";
+
+                        if (CATEGORY == "SWINE")
+                        {
+                            swinex += item2.AMOUNT;
+                        }
+
+                        if (CATEGORY == "POULTRY")
+                        {
+                            poultryx += item2.AMOUNT;
+                        }
+
+                        if (CATEGORY == "")
+                        {
+                            uncategorized += item2.AMOUNT;
+                        }
+                        if (CATEGORY == "COMMON")
+                        {
+                            string charlast = item2.DESCRIPTION.Substring(item2.DESCRIPTION.Length - 3, 3); //(P) 3
+
+                            string charlast1 = item2.DESCRIPTION.Substring(item2.DESCRIPTION.Length - 3, 3); // - P 3
+
+                            string charlast2 = item2.DESCRIPTION.Substring(item2.DESCRIPTION.Length - 5, 5); // ( P ) 5 
+
+                            string charlast3 = item2.DESCRIPTION.Substring(item2.DESCRIPTION.Length - 2, 2); // -P 2 
+
+
+                            if (charlast == "(S)" || charlast1 == "- S" || charlast2 == "( S )" || charlast3 == "-S" || charlast == "(s)" || charlast1 == "- s" || charlast2 == "( s )" || charlast3 == "-s")
+
+                            {
+                                C_swinex += item2.AMOUNT;
+                            }
+                            else if (charlast == "(P)" || charlast1 == "- P" || charlast2 == "( P )" || charlast3 == "-P" || charlast == "(p)" || charlast1 == "- p" || charlast2 == "( p )" || charlast3 == "-p")
+                            {
+                                C_poultryx += item2.AMOUNT;
+                            }
+                            else
+                            {
+                                C_Uncategorized += item2.AMOUNT;
+                            }
+                        }
+
+                    }
+                }
+
+                cell = ws.Cell("B" + rowNumber).SetValue(swinex);
+                cell.Style.NumberFormat.Format = "#,##0.00";
+                cell = ws.Cell("C" + rowNumber).SetValue(poultryx);
+                cell.Style.NumberFormat.Format = "#,##0.00";
+                cell = ws.Cell("D" + rowNumber).SetValue(uncategorized);
+                cell.Style.NumberFormat.Format = "#,##0.00";
+
+                cell = ws.Cell("E" + rowNumber).SetValue(C_swinex);
+                cell.Style.NumberFormat.Format = "#,##0.00";
+
+                cell = ws.Cell("F" + rowNumber).SetValue(C_poultryx);
+                cell.Style.NumberFormat.Format = "#,##0.00";
+
+                cell = ws.Cell("G" + rowNumber).SetValue(C_Uncategorized);
+                cell.Style.NumberFormat.Format = "#,##0.00";
+
+
+                cell = ws.Cell("H" + rowNumber).SetValue(credit_swines);
+                cell.Style.NumberFormat.Format = "#,##0.00";
+                TOTAL_SALES_RETURN_SWINE = cell.Address;
+
+                cell = ws.Cell("I" + rowNumber).SetValue(credit_poultrys);
+                cell.Style.NumberFormat.Format = "#,##0.00";
+                TOTAL_SALES_RETURN_POULTRY = cell.Address;
+
+                cell = ws.Cell("J" + rowNumber).SetValue(credit_commons);
+                cell.Style.NumberFormat.Format = "#,##0.00";
+                TOTAL_SALES_RETURN_COMMON = cell.Address;
+
+                cell = ws.Cell("K" + rowNumber).SetValue(credit_uncategorizeds);
+                cell.Style.NumberFormat.Format = "#,##0.00";
+                TOTAL_SALES_RETURN_UNCATEGORIZED = cell.Address;
+
+                cell = ws.Cell("L" + rowNumber);
+                cell.Style.Font.Bold = true;
+                cell.FormulaA1 = "(" + swinex.ToString() + "+" + poultryx.ToString() + "+" + uncategorized.ToString() + "+" + C_swinex.ToString() + "+" + C_poultryx.ToString() + "+" + C_Uncategorized.ToString() + ")-(" + credit_swines.ToString() + "+" + credit_poultrys.ToString() + "+" + credit_commons.ToString() + "+" + credit_uncategorizeds.ToString() + ")";
+                cell.Style.NumberFormat.Format = "#,##0.00";
+                rowNumber++;
+
+            }
+
+
+
+            ws.Column("A").Width = 27;
+            ws.Column("B").Width = 15;
+            ws.Column("C").Width = 12;
+            ws.Column("D").Width = 41;
+
+
+            if (selectedCat == "1")
+            {
+
+                ws.Column("E").Width = 30;
+                ws.Column("F").Width = 10;
+                ws.Column("G").Width = 12;
+                ws.Column("H").Width = 12;
+                ws.Column("I").Width = 12;
+            }
+            else if (selectedCat == "2")
+            {
+
+                ws.Column("E").Width = 30;
+                ws.Column("F").Width = 10;
+                ws.Column("G").Width = 12;
+                ws.Column("H").Width = 12;
+                ws.Column("I").Width = 12;
+            }
+            else if (selectedCat == "3")
+            {
+                ws.Column("E").Width = 30;
+                ws.Column("F").Width = 10;
+                ws.Column("G").Width = 12;
+                ws.Column("H").Width = 12;
+                ws.Column("I").Width = 12;
+            }
+            else
+            {
+                ws.Column("E").Width = 30;
+                ws.Column("F").Width = 30;
+                ws.Column("G").Width = 30;
+                ws.Column("H").Width = 10;
+                ws.Column("I").Width = 12;
+                ws.Column("J").Width = 12;
+                ws.Column("K").Width = 12;
+            }
+
+
+            if (wb.Worksheets.Count > 0)
+            {
+                MemoryStream ms = GetStream(wb);
+                byte[] bytes = ms.ToArray();
+                ms.Close();
+
+                await js.SaveAsFileAsync("SALES_REPORT", bytes, "application/vnd.ms-excel");
+            }
+            else
+            {
+                await js.InvokeVoidAsync("alert", "No record found.");
+            }
+
+        }
+    }
+    #endregion
+    private MemoryStream GetStream(XLWorkbook excelWorkbook)
+    {
+        MemoryStream fs = new MemoryStream();
+        excelWorkbook.SaveAs(fs);
+        fs.Position = 0;
+        return fs;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState.CompanyReady())
+        {
+            await LoadData();
+        }
+    }
+    private async Task AppState_StateChanged(ComponentBase Source, string Property)
+    {
+        if (Source != this)
+        {
+            if (AppState.CompanyReady())
+            {
+                await LoadData();
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    protected override void OnInitialized()
+    {
+        AppState.StateChanged += async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+    void IDisposable.Dispose()
+    {
+        AppState.StateChanged -= async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+}

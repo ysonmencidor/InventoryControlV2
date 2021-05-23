@@ -234,9 +234,10 @@ using ICV2_Web.JSHelper;
 #line 84 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\BatchByBalanceDetails.razor"
        
 
-    IJSObjectReference module;
+    //IJSObjectReference module;
+
     BATCHNOBALANCEDETAILSFILTER formModel = new();
-    private bool Submited = false;
+    //private bool Submited = false;
     private IEnumerable<StockGroups> StockGroup { get; set; }
     private IEnumerable<StockLocations> Location { get; set; }
     //private IEnumerable<BATCHNOBALANCEDETAILSRESULT> result { get; set; }
@@ -289,15 +290,11 @@ using ICV2_Web.JSHelper;
             var data = JsonSerializer.Deserialize<List<BATCHNOBALANCEDETAILSRESULT>>(responseString,
               new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
 
-            GenerateExcel(data);
-
-
-            //GenerateExcel(Result);
-
+             await GenerateExcel(data);
         }
     }
 
-    private async void GenerateExcel(List<BATCHNOBALANCEDETAILSRESULT> data)
+    private async Task GenerateExcel(List<BATCHNOBALANCEDETAILSRESULT> data)
     {
         using (XLWorkbook wb = new XLWorkbook())
         {

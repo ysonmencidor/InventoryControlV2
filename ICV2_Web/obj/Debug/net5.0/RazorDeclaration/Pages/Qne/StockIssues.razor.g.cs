@@ -187,14 +187,207 @@ using NEvaldas.Blazor.Select2;
 #line default
 #line hidden
 #nullable disable
+#nullable restore
+#line 2 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\StockIssues.razor"
+using System.Text.Json;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 3 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\StockIssues.razor"
+using System.IO;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 4 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\StockIssues.razor"
+using ClosedXML.Excel;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 5 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\StockIssues.razor"
+using ICV2_Web.JSHelper;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 6 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\StockIssues.razor"
+           [Authorize(Roles = "Administrator,User")]
+
+#line default
+#line hidden
+#nullable disable
     [Microsoft.AspNetCore.Components.RouteAttribute("/StockIssues")]
-    public partial class StockIssues : Microsoft.AspNetCore.Components.ComponentBase
+    public partial class StockIssues : Microsoft.AspNetCore.Components.ComponentBase, IDisposable
     {
         #pragma warning disable 1998
         protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder __builder)
         {
         }
         #pragma warning restore 1998
+#nullable restore
+#line 80 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\StockIssues.razor"
+       
+
+    private List<StockIssue> stockIssues { get; set; }
+    private List<STOCKISSUEDETAILSRESULT> sTOCKISSUEDETAILSRESULTs { get; set; } = new List<STOCKISSUEDETAILSRESULT>();
+    private Guid StockIssueId;
+
+    private string CompCode { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState.CompanyReady())
+        {
+            await LoadData();
+        }
+    }
+    private async Task OnSelectedValueChanged(Guid value)
+    {
+        StockIssueId = value;
+        STOCKISSUEFILTER filter = new STOCKISSUEFILTER { CompanyCode = AppState.selectedCompanyCode,StockIssueId = this.StockIssueId };
+        var httprequest = await http.PostAsJsonAsync("api/Report/GenerateStockIssueDetail", filter);
+        if (httprequest.IsSuccessStatusCode)
+        {
+            var httpContent = await httprequest.Content.ReadAsStringAsync();
+            sTOCKISSUEDETAILSRESULTs = JsonSerializer.Deserialize<List<STOCKISSUEDETAILSRESULT>>(httpContent,
+                 new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+
+        }
+    }
+
+    private async Task Download()
+    {
+        using (XLWorkbook wb = new XLWorkbook())
+        {
+            IXLWorksheet ws = wb.Worksheets.Add("STOCK ISSUES");
+            IXLCell cell;
+
+            var si_Code = stockIssues.Find(x => x.Id == StockIssueId).StockOutCode;
+            int rowNumber = 0;
+            cell = ws.Cell("A" + ++rowNumber).SetValue("Company :");
+            cell.Style.Font.Bold = true;
+            cell = ws.Cell("B" + rowNumber).SetValue(AppState.selectedCompanyCode);
+            cell.Style.Font.Bold = true;
+            cell = ws.Cell("A" + ++rowNumber).SetValue("STOCK ISSUE NO :");
+            cell.Style.Font.Bold = true;
+            cell = ws.Cell("B" + rowNumber).SetValue(si_Code);
+            cell.Style.Font.Bold = true;
+
+
+            rowNumber++;
+            rowNumber++;
+
+            cell = ws.Cell("A" + rowNumber).SetValue("STOCK CODE");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("B" + rowNumber).SetValue("DESCRIPTION");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("C" + rowNumber).SetValue("BATCH NO");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("D" + rowNumber).SetValue("QTY");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("E" + rowNumber).SetValue("UOM");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("F" + rowNumber).SetValue("U.COST");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("G" + rowNumber).SetValue("AMOUNT");
+            cell.Style.Font.Bold = true;
+
+            rowNumber++;
+            foreach (var item in sTOCKISSUEDETAILSRESULTs)
+            {
+
+                cell = ws.Cell("A" + rowNumber).SetValue(item.StockCode);
+                cell = ws.Cell("B" + rowNumber).SetValue(item.StockName);
+                cell = ws.Cell("C" + rowNumber).SetValue(item.BatchNo);
+                cell = ws.Cell("D" + rowNumber).SetValue(item.Qty);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+                cell = ws.Cell("E" + rowNumber).SetValue(item.UOMCode);
+                cell = ws.Cell("F" + rowNumber).SetValue(item.Price);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+                cell = ws.Cell("G" + rowNumber).SetValue(item.Amount);
+
+                rowNumber++;
+
+            }
+
+
+            ws.Column("A").Width = 20;
+            ws.Column("B").Width = 35;
+            ws.Column("C").Width = 16;
+            ws.Column("D").Width = 15;
+            ws.Column("E").Width = 15;
+            ws.Column("F").Width = 15;
+            ws.Column("G").Width = 15;
+
+            if (wb.Worksheets.Count > 0)
+            {
+                MemoryStream ms = GetStream(wb);
+                byte[] bytes = ms.ToArray();
+                ms.Close();
+
+                await js.SaveAsFileAsync("STOCK_ISSUES", bytes, "application/vnd.ms-excel");
+            }
+            else
+            {
+                await js.InvokeVoidAsync("alert", "No record found.");
+            }
+        }
+
+    }
+    private async Task LoadData()
+    {
+        CompCode = AppState.selectedCompanyCode;
+
+        stockIssues = await http.GetFromJsonAsync<List<StockIssue>>("api/Qne/StockIssues?companyCode=" + CompCode);
+
+    }
+
+    private MemoryStream GetStream(XLWorkbook excelWorkbook)
+    {
+        MemoryStream fs = new MemoryStream();
+        excelWorkbook.SaveAs(fs);
+        fs.Position = 0;
+        return fs;
+    }
+
+
+    private async Task AppState_StateChanged(ComponentBase Source, string Property)
+    {
+        if (Source != this)
+        {
+            if (AppState.CompanyReady())
+            {
+                await LoadData();
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    protected override void OnInitialized()
+    {
+        AppState.StateChanged += async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+    void IDisposable.Dispose()
+    {
+        AppState.StateChanged -= async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+
+#line default
+#line hidden
+#nullable disable
+        [global::Microsoft.AspNetCore.Components.InjectAttribute] private IJSRuntime js { get; set; }
+        [global::Microsoft.AspNetCore.Components.InjectAttribute] private HttpClient http { get; set; }
+        [global::Microsoft.AspNetCore.Components.InjectAttribute] private AppState AppState { get; set; }
     }
 }
 #pragma warning restore 1591

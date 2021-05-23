@@ -36,14 +36,12 @@ namespace ICV2_API.Controllers
                 return BadRequest();
             }
         }
-
         [Route("GetStockGroups")]
         [HttpGet]
         public async Task<IEnumerable<StockGroups>> GetStockGroup(string companyCode)
         {
             return await qneDataService.GetStockGroup(companyCode);
         }
-
         [Route("GetStockLocations")]
         [HttpGet]
         public async Task<IEnumerable<StockLocations>> GetStockLocation(string companyCode)
@@ -69,21 +67,18 @@ namespace ICV2_API.Controllers
         {
             return await qneDataService.GetSalesPersons(companyCode);
         }
-
         [Route("GetAreas")]
         [HttpGet]
         public async Task<IEnumerable<Areas>> GetArea(string companyCode)
         {
             return await qneDataService.GetAreas(companyCode);
         }
-
         [Route("GetFG")]
         [HttpGet]
         public async Task<IEnumerable<FGMASTERFILEMODEL>> GetFG(string companyCode)
         {
             return await qneDataService.GetFGMasterFile(companyCode);
         }
-
         [Route("AddUpdateFG")]
         [HttpPost]
         public async Task<IActionResult> AddUpdateFG(FGMASTERFILEFILTER filter)
@@ -101,6 +96,24 @@ namespace ICV2_API.Controllers
         public async Task<FGMASTERFILEMODEL> FindFGByCode(string companyCode,string stockCode)
         {
             return await qneDataService.GetFGByCode(companyCode,stockCode);
+        }
+
+        [Route("StockIssues")]
+        [HttpGet]
+        public async Task<IEnumerable<StockIssue>> LoadStockIssues(string companyCode)
+        {
+            return await qneDataService.GetStockIssuesAsync(companyCode);
+        }
+        [Route("GetBatchByStockId")]
+        [HttpGet]
+        public async Task<IActionResult> GetBatchByStockId(string companyCode,Guid StockId)
+        {
+             var model = await qneDataService.GetBatchNumByStockId(companyCode, StockId);
+             if (model != null)
+             {
+                    return Ok(model);
+             }
+            return BadRequest();
         }
     }
 }

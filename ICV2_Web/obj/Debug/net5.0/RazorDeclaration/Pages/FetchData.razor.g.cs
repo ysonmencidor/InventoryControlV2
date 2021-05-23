@@ -202,12 +202,6 @@ using NEvaldas.Blazor.Select2;
 
     IJSObjectReference module;
 
-    protected override async Task OnInitializedAsync()
-    {
-        //forecasts = await Http.GetFromJsonAsync<WeatherForecast[]>("sample-data/weather.json");
-
-        //await JSRuntime.InvokeVoidAsync("TestDataTablesAdd", "#example");
-    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)

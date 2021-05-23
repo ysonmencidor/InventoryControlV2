@@ -172,5 +172,110 @@ namespace ICV2_API.Controllers
             }
             return BadRequest();
         }
+
+        [Route("GenerateStockIssueDetail")]
+        [HttpPost]
+        public async Task<IActionResult> GenerateStockIssueDetail(STOCKISSUEFILTER filter)
+        {
+            if (filter != null)
+            {
+                if (filter.CompanyCode != "404")
+                {
+                    var model = await qneReportService.GenerateStockissuesDetail(filter);
+                    if (model != null)
+                    {
+                        return Ok(model);
+                    }
+                    else
+                    {
+                        return BadRequest();
+                    }
+                }
+                else
+                {
+                    return BadRequest();
+                }
+            }
+            return BadRequest();
+        }
+
+
+        [Route("GenerateNearExp")]
+        [HttpPost]
+        public async Task<IActionResult> GenerateNearExp(NEAREXPIRYFILTER filter)
+        {
+            if (filter != null)
+            {
+                if (filter.CompanyCode != "404")
+                {
+                    var model = await qneReportService.GenerateNearExpiry(filter);
+                    if (model != null)
+                    {
+                        return Ok(model);
+                    }
+                    else
+                    {
+                        return BadRequest();
+                    }
+                }
+                else
+                {
+                    return BadRequest();
+                }
+            }
+            return BadRequest();
+        }
+        [Route("GenerateStockLedgerInq")]
+        [HttpPost]
+        public async Task<IActionResult> GenerateStockLedgerInq(STOCKLEDGERINQUIRYFILTER filter)
+        {
+            if (filter != null)
+            {
+                if (filter.CompanyCode != "404")
+                {
+                    var model = await qneReportService.GenerateStockLedgerInq(filter);
+                    if (model != null)
+                    {
+                        return Ok(model);
+                    }
+                    else
+                    {
+                        return BadRequest();
+                    }
+                }
+                else
+                {
+                    return BadRequest();
+                }
+            }
+            return BadRequest();
+        }
+
+        [Route("GenerateStockLedgerWBatch")]
+        [HttpPost]
+        public async Task<IActionResult> GenerateStockLedgerWBatch(STOCKLEDGERWITHBATCHFILTER filter)
+        {
+            if (filter != null)
+            {
+                if (filter.CompanyCode != "404")
+                {
+                    var model = await qneReportService.GenerateStockLedgerWBatch(filter);
+
+                    if (model != null)
+                    {
+                        return Ok(model);
+                    }
+                    else
+                    {
+                        return BadRequest();
+                    }
+                }
+                else
+                {
+                    return BadRequest();
+                }
+            }
+            return BadRequest();
+        }
     }
 }

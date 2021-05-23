@@ -1,7 +1,200 @@
 ﻿@page "/NearExpiry"
+@using System.Text.Json;
+@using System.IO
+@using ClosedXML.Excel;
+@using ICV2_Web.JSHelper
+@attribute [Authorize(Roles = "Administrator,User")]
+@implements IDisposable
+@inject AppState AppState
+@inject HttpClient http
+@inject IJSRuntime js
 
-<h3>NearExpiry</h3>
 
+<div class="card shadow">
+    @if (formModel != null)
+    {
+        <EditForm id="MyForm" Model="formModel" OnSubmit="GenerateReport">
+            <div class="card-header bg-secondary text-white ">
+                Near Expiry products
+            </div>
+            <div class="card-body">
+                <div class="form-group row">
+                    <label for="asofDate" class="col-sm-2 col-form-label">As of Date</label>
+                    <div class="col-sm-10">
+                        <InputDate id="asofDate" @bind-Value="formModel.AsOfDate" class="form-control" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="stockgRoup" class="col-sm-2 col-form-label">Stock Code</label>
+                    <div class="col-sm-10">
+                        <InputSelect id="stockgRoup" @bind-Value="formModel.StockCodes" class="form-control">
+                            <option value="%%">All</option>
+                            @if (Stocks is not null)
+                                {
+                                @foreach (var item in Stocks)
+                                    {
+                                    <option value="@item.StockCode">@item.StockCode</option>
+                                    }
+                                }
+                        </InputSelect>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="stockLoc" class="col-sm-2 col-form-label">Location</label>
+                    <div class="col-sm-10">
+                        <InputSelect id="stockLoc" @bind-Value="formModel.LocationCode" class="form-control">
+                            <option value="--ALL--">All</option>
+                            <option value="--NONE--">None</option>                       
+                                @if (Location is not null)
+                                {
+                                @foreach (var item in Location)
+                                    {
+                                    <option value="@item.LocationCode">@item.LocationCode</option>
+                                    }
+                                }
+                        </InputSelect>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-outline-info">Generate Report</button>
+                </div>
+            </div>
+        </EditForm>
+    }
+</div>
 @code {
 
+    NEAREXPIRYFILTER formModel = new();
+
+    private IEnumerable<Stocks> Stocks { get; set; }
+    private IEnumerable<StockLocations> Location { get; set; }
+
+    private string CompCode { get; set; }
+
+    private async Task GenerateReport()
+    {
+        formModel.CompanyCode = AppState.selectedCompanyCode;
+
+        var httpRequest = await http.PostAsJsonAsync("api/Report/GenerateNearExp", formModel);
+
+        if (httpRequest.IsSuccessStatusCode)
+        {
+            var responseString = await httpRequest.Content.ReadAsStringAsync();
+
+            //Console.WriteLine(responseString);
+            var data = JsonSerializer.Deserialize<List<NEAREXPIRYRESULT>>(responseString,
+              new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+
+            await GenerateExcel(data);
+        }
+    }
+
+    private async Task GenerateExcel(List<NEAREXPIRYRESULT> data)
+    {
+        using (XLWorkbook wb = new XLWorkbook())
+        {
+
+            int rowNumber = 0;
+
+            IXLWorksheet ws = wb.Worksheets.Add("Near Expiry");
+            IXLCell cell;
+
+            cell = ws.Cell("A" + ++rowNumber).SetValue(formModel.CompanyCode);
+            cell = ws.Cell("A" + ++rowNumber).SetValue("As of Date");
+            cell = ws.Cell("B" + rowNumber).SetValue(formModel.AsOfDate.ToShortDateString().ToString());
+            rowNumber++;
+            cell = ws.Cell("A" + rowNumber).SetValue("EXPIRY DATE");
+            cell = ws.Cell("B" + rowNumber).SetValue("PRODUCT DESCRIPTION");
+            cell = ws.Cell("C" + rowNumber).SetValue("PRODUCT CODE");
+            cell = ws.Cell("D" + rowNumber).SetValue("CLASS NAME");
+            cell = ws.Cell("E" + rowNumber).SetValue("BATCH NO.");
+            cell = ws.Cell("F" + rowNumber).SetValue("STOCK LOCATION");
+            cell = ws.Cell("G" + rowNumber).SetValue("INVENTORY BALANCE");
+            cell = ws.Cell("H" + rowNumber).SetValue("BASE UOM");
+
+
+            foreach (NEAREXPIRYRESULT result in data)
+            {
+                rowNumber++;
+                cell = ws.Cell("A" + rowNumber).SetValue(result.ExpiryDate);
+                cell = ws.Cell("B" + rowNumber).SetValue(result.StockName);
+                cell = ws.Cell("C" + rowNumber).SetValue(result.StockCode);
+                cell = ws.Cell("D" + rowNumber).SetValue(result.ClassName);
+                cell = ws.Cell("E" + rowNumber).SetValue(result.BatchNo);
+                cell = ws.Cell("F" + rowNumber).SetValue(result.LocationName);
+                cell = ws.Cell("G" + rowNumber).SetValue(result.BalQty);
+                cell = ws.Cell("H" + rowNumber).SetValue(result.BaseUOM);
+            }
+
+            ws.Column("A").Width = 16;
+            ws.Column("B").Width = 42;
+            ws.Column("C").Width = 15;
+            ws.Column("D").Width = 25;
+            ws.Column("E").Width = 20;
+            ws.Column("F").Width = 34;
+            ws.Column("G").Width = 21;
+            ws.Column("H").Width = 10;
+
+            if (wb.Worksheets.Count > 0)
+            {
+                MemoryStream ms = GetStream(wb);
+                byte[] bytes = ms.ToArray();
+                ms.Close();
+
+                await js.SaveAsFileAsync("NearExpiryProduct_"+ DateTime.Now.ToShortDateString().ToString(), bytes, "application/vnd.ms-excel");
+            }
+            else
+            {
+                await js.InvokeVoidAsync("alert", "No record found.");
+            }
+
+        }
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState.CompanyReady())
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        CompCode = AppState.selectedCompanyCode;
+
+        Stocks = await http.GetFromJsonAsync<IEnumerable<Stocks>>("api/Qne/GetStockItems?companyCode=" + CompCode);
+        Location = await http.GetFromJsonAsync<IEnumerable<StockLocations>>("api/Qne/GetStockLocations?companyCode=" + CompCode);
+
+    }
+
+    private MemoryStream GetStream(XLWorkbook excelWorkbook)
+    {
+        MemoryStream fs = new MemoryStream();
+        excelWorkbook.SaveAs(fs);
+        fs.Position = 0;
+        return fs;
+    }
+    private async Task AppState_StateChanged(ComponentBase Source, string Property)
+    {
+        if (Source != this)
+        {
+            if (AppState.CompanyReady())
+            {
+                await LoadData();
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    protected override void OnInitialized()
+    {
+        AppState.StateChanged += async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+    void IDisposable.Dispose()
+    {
+        AppState.StateChanged -= async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
 }

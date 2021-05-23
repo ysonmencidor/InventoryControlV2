@@ -1,7 +1,229 @@
 ﻿@page "/StockIssues"
- 
-<h3>StockIssues</h3>
+@using System.Text.Json;
+@using System.IO
+@using ClosedXML.Excel;
+@using ICV2_Web.JSHelper
+@attribute [Authorize(Roles = "Administrator,User")]
+@implements IDisposable
+@inject AppState AppState
+@inject HttpClient http
+@inject IJSRuntime js
 
+<div class="card shadow">
+    <div class="card-header bg-secondary text-white ">
+        Stock Issue Reports
+    </div>
+    <div class="card-body">
+        <div class="form-group row">
+            <label for="si" class="col-sm-4 col-md-2 col-lg-2 col-form-label">ISSUE CODE:</label>
+            <div class="col-sm-8 col-md-3 col-lg-3">
+                <Select TValue="Guid" SelectedValue="@StockIssueId" SelectedValueChanged="@OnSelectedValueChanged">
+                    @if (stockIssues != null)
+                    {
+                        <SelectItem Value="Guid.Empty">- SELECT -</SelectItem>
+                        foreach (var item in stockIssues)
+                        {
+                            <SelectItem Value="item.Id">@item.StockOutCode</SelectItem>
+                        }
+                    }
+                    else
+                    {
+                        <SelectItem Value="Guid.Empty">- SELECT COMPANY FIRST -</SelectItem>
+                    }
+                </Select>
+</div>
+        </div>
+
+        <table class="table table-striped table-hover">
+            <thead class="bg-info text-white">
+                <tr>
+                    <th>STOCK CODE</th>
+                    <th>DESCRIPTION</th>
+                    <th>BATCHNO</th>
+                    <th>QTY</th>
+                    <th>UOM</th>
+                    <th>U.COST</th>
+                    <th>AMOUNT</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (sTOCKISSUEDETAILSRESULTs is not null)
+                {
+                    foreach (var item in sTOCKISSUEDETAILSRESULTs)
+                    {
+                        <tr>
+                            <td>@item.StockCode</td>
+                            <td>@item.StockName</td>
+                            <td>@item.BatchNo</td>
+                            <td>@item.Qty</td>
+                            <td>@item.UOMCode</td>
+                            <td>@item.Price</td>
+                            <td>@item.Amount</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+
+    </div>
+    <div class="card-footer">
+        <div class="d-flex justify-content-end">
+            <div class="d-flex justify-content-end">
+                @if (StockIssueId != Guid.Empty && stockIssues.Count > 0)
+                {
+                    <button type="submit" @onclick="Download" class="btn btn-outline-info btn-sm">DOWNLOAD <Icon Name="IconName.Download"></Icon></button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
 @code {
 
+    private List<StockIssue> stockIssues { get; set; }
+    private List<STOCKISSUEDETAILSRESULT> sTOCKISSUEDETAILSRESULTs { get; set; } = new List<STOCKISSUEDETAILSRESULT>();
+    private Guid StockIssueId;
+
+    private string CompCode { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState.CompanyReady())
+        {
+            await LoadData();
+        }
+    }
+    private async Task OnSelectedValueChanged(Guid value)
+    {
+        StockIssueId = value;
+        STOCKISSUEFILTER filter = new STOCKISSUEFILTER { CompanyCode = AppState.selectedCompanyCode,StockIssueId = this.StockIssueId };
+        var httprequest = await http.PostAsJsonAsync("api/Report/GenerateStockIssueDetail", filter);
+        if (httprequest.IsSuccessStatusCode)
+        {
+            var httpContent = await httprequest.Content.ReadAsStringAsync();
+            sTOCKISSUEDETAILSRESULTs = JsonSerializer.Deserialize<List<STOCKISSUEDETAILSRESULT>>(httpContent,
+                 new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+
+        }
+    }
+
+    private async Task Download()
+    {
+        using (XLWorkbook wb = new XLWorkbook())
+        {
+            IXLWorksheet ws = wb.Worksheets.Add("STOCK ISSUES");
+            IXLCell cell;
+
+            var si_Code = stockIssues.Find(x => x.Id == StockIssueId).StockOutCode;
+            int rowNumber = 0;
+            cell = ws.Cell("A" + ++rowNumber).SetValue("Company :");
+            cell.Style.Font.Bold = true;
+            cell = ws.Cell("B" + rowNumber).SetValue(AppState.selectedCompanyCode);
+            cell.Style.Font.Bold = true;
+            cell = ws.Cell("A" + ++rowNumber).SetValue("STOCK ISSUE NO :");
+            cell.Style.Font.Bold = true;
+            cell = ws.Cell("B" + rowNumber).SetValue(si_Code);
+            cell.Style.Font.Bold = true;
+
+
+            rowNumber++;
+            rowNumber++;
+
+            cell = ws.Cell("A" + rowNumber).SetValue("STOCK CODE");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("B" + rowNumber).SetValue("DESCRIPTION");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("C" + rowNumber).SetValue("BATCH NO");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("D" + rowNumber).SetValue("QTY");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("E" + rowNumber).SetValue("UOM");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("F" + rowNumber).SetValue("U.COST");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("G" + rowNumber).SetValue("AMOUNT");
+            cell.Style.Font.Bold = true;
+
+            rowNumber++;
+            foreach (var item in sTOCKISSUEDETAILSRESULTs)
+            {
+
+                cell = ws.Cell("A" + rowNumber).SetValue(item.StockCode);
+                cell = ws.Cell("B" + rowNumber).SetValue(item.StockName);
+                cell = ws.Cell("C" + rowNumber).SetValue(item.BatchNo);
+                cell = ws.Cell("D" + rowNumber).SetValue(item.Qty);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+                cell = ws.Cell("E" + rowNumber).SetValue(item.UOMCode);
+                cell = ws.Cell("F" + rowNumber).SetValue(item.Price);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+                cell = ws.Cell("G" + rowNumber).SetValue(item.Amount);
+
+                rowNumber++;
+
+            }
+
+
+            ws.Column("A").Width = 20;
+            ws.Column("B").Width = 35;
+            ws.Column("C").Width = 16;
+            ws.Column("D").Width = 15;
+            ws.Column("E").Width = 15;
+            ws.Column("F").Width = 15;
+            ws.Column("G").Width = 15;
+
+            if (wb.Worksheets.Count > 0)
+            {
+                MemoryStream ms = GetStream(wb);
+                byte[] bytes = ms.ToArray();
+                ms.Close();
+
+                await js.SaveAsFileAsync("STOCK_ISSUES", bytes, "application/vnd.ms-excel");
+            }
+            else
+            {
+                await js.InvokeVoidAsync("alert", "No record found.");
+            }
+        }
+
+    }
+    private async Task LoadData()
+    {
+        CompCode = AppState.selectedCompanyCode;
+
+        stockIssues = await http.GetFromJsonAsync<List<StockIssue>>("api/Qne/StockIssues?companyCode=" + CompCode);
+
+    }
+
+    private MemoryStream GetStream(XLWorkbook excelWorkbook)
+    {
+        MemoryStream fs = new MemoryStream();
+        excelWorkbook.SaveAs(fs);
+        fs.Position = 0;
+        return fs;
+    }
+
+
+    private async Task AppState_StateChanged(ComponentBase Source, string Property)
+    {
+        if (Source != this)
+        {
+            if (AppState.CompanyReady())
+            {
+                await LoadData();
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    protected override void OnInitialized()
+    {
+        AppState.StateChanged += async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+    void IDisposable.Dispose()
+    {
+        AppState.StateChanged -= async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
 }

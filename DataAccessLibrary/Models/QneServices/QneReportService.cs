@@ -306,5 +306,93 @@ namespace DataAccessLibrary.Models.QneServices
             }
         }
 
+        public async Task<IEnumerable<STOCKISSUEDETAILSRESULT>> GenerateStockissuesDetail(STOCKISSUEFILTER filter)
+        {
+            using (IDbConnection con = new SqlConnection(QNEConnectionString.ChooseConnection(filter.CompanyCode)))
+            {
+                string sql = @"select B.StockCode,B.StockName,D.BatchNo,A.Qty,C.UOMCode,A.Price,A.Amount from StockOutDetails AS A
+                                LEFT JOIN Stocks AS B
+                                ON A.StockId = B.Id
+                                LEFT JOIN UOMs AS C
+                                ON C.StockId = A.StockId
+                                LEFT JOIN StockBatchNumbers AS D
+                                ON A.StockBatchNumberId = D.Id
+                                WHERE A.StockOutId = @StockIssueId";
+                var res = await con.QueryAsync<STOCKISSUEDETAILSRESULT>(sql, new { filter.StockIssueId });
+                return res;
+            }
+        }
+
+        public async Task<IEnumerable<NEAREXPIRYRESULT>> GenerateNearExpiry(NEAREXPIRYFILTER filter)
+        {
+            using (IDbConnection con = new SqlConnection(QNEConnectionString.ChooseConnection(filter.CompanyCode)))
+            {
+                string sql = "SELECT * FROM dbo.FN_NearExpiryItems(@AsofDate,@StockCodes,@Location)";
+                var p = new DynamicParameters();
+                p.Add("@AsofDate", filter.AsOfDate);
+                p.Add("@StockCodes", filter.StockCodes);
+                p.Add("@Location", filter.LocationCode);
+                var res = await con.QueryAsync<NEAREXPIRYRESULT>(sql, p);
+                return res;
+            }
+        }
+        public async Task<IEnumerable<STOCKLEDGERINQUIRYRESULT>> GenerateStockLedgerInq(STOCKLEDGERINQUIRYFILTER filter)
+        {
+            using (IDbConnection con = new SqlConnection(QNEConnectionString.ChooseConnection(filter.CompanyCode)))
+            {
+                string sql = "SELECT * FROM dbo.FN_StockLedgerInquiry(@DateFrom,@DateTo,@IncludeGST,@IncludeZero,@IncludeInactive,@StockCodeFrom,@StockCodeTo,@Location,@IncludeStockTransfer)";
+                var p = new DynamicParameters();
+                p.Add("@DateFrom", filter.DateFrom);
+                p.Add("@DateTo", filter.DateTo);
+                p.Add("@IncludeGST", filter.IncludeGST);
+                p.Add("@IncludeZero", filter.IncludeZero);
+                p.Add("@IncludeInactive", filter.IncludeInactive);
+                p.Add("@StockCodeFrom", filter.StockCodeFrom);
+                p.Add("@StockCodeTo", filter.StockCodeTo);
+                p.Add("@Location", filter.LocationCode);
+                p.Add("@IncludeStockTransfer", filter.IncludeStockTransfer);
+                var res = await con.QueryAsync<STOCKLEDGERINQUIRYRESULT>(sql, p);
+                return res;
+            }
+        }
+
+        public async Task<IEnumerable<STOCKLEDGERWITHBATCHRESULT>> GenerateStockLedgerWBatch(STOCKLEDGERWITHBATCHFILTER filter)
+        {
+            using (IDbConnection con = new SqlConnection(QNEConnectionString.ChooseConnection(filter.CompanyCode)))
+            {
+                string sql = @"SELECT A.*,B.BatchNoExpiryDate,B.BatchNoManufacturingDate FROM dbo.FN_StockLedgerWithBatch(@DateFrom,@DateTo,@IncludeZero,@IncludeInactive,@IncludeStockTransfer,@StockCodes,@Location) AS A                          
+                              JOIN StockBatchNumbers AS B
+                              ON A.StockBatchNumberId = B.Id
+                              WHERE A.StockBatchNumberId LIKE @BatchId AND A.GroupCode LIKE @GroupCode";
+                var p = new DynamicParameters();
+                p.Add("@DateFrom", filter.DateFrom);
+                p.Add("@DateTo", filter.DateTo);
+                p.Add("@IncludeZero", filter.IncludeZero);
+                p.Add("@IncludeInactive", filter.IncludeInactive);
+                p.Add("@IncludeStockTransfer", filter.IncludeStockTransfer);
+                p.Add("@StockCodes", filter.StockCodes);
+                p.Add("@BatchId", filter.BatchId);
+                p.Add("@Location", filter.LocationCode);
+                p.Add("@GroupCode", filter.StockGroup);
+                var model = await con.QueryAsync<STOCKLEDGERWITHBATCHRESULT>(sql, p);
+                return model;
+                //if(filter.BatchId != "%%")
+                //{
+                //    model.Where(x => x.StockBatchNumberId == Guid.Parse(filter.BatchId));
+                //}
+                //return model.ToList();
+            }
+        }
+        //public async Task<IEnumerable<STOCKLEDGERWITHBATCHRESULT>> GenerateStockLedgerWBatch(STOCKLEDGERWITHBATCHFILTER filter)
+        //{
+        //    using (IDbConnection con = new SqlConnection(QNEConnectionString.ChooseConnection(filter.CompanyCode)))
+        //    {
+        //        string sql = @"SELECT A.*,B.BatchNoExpiryDate,B.BatchNoManufacturingDate FROM dbo.FN_StockLedgerWithBatch('2010-01-01','2021-12-12',0,0,0,null,'--ALL--') AS A                          
+        //                      JOIN StockBatchNumbers AS B
+        //                      ON A.StockBatchNumberId = B.Id";
+        //        var res = await con.QueryAsync<STOCKLEDGERWITHBATCHRESULT>(sql);
+        //        return res;
+        //    }
+        //}
     }
 }

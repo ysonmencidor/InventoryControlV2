@@ -203,14 +203,14 @@ using System.Text.Json;
         }
         #pragma warning restore 1998
 #nullable restore
-#line 248 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Manage\ManageGroup.razor"
+#line 251 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Manage\ManageGroup.razor"
                
             private Modal modalManage;
             private Modal modalRef;
             private Modal modalUserRef;
 
-            private UserModel DDLUserSelected;
-            private int SelectedUserId;
+            //private UserModel DDLUserSelected;
+            //private int SelectedUserId;
             private int SelectedGroupId = 0;
             private string selectedGroupName = string.Empty;
             Group selectedGroup = new();
@@ -310,17 +310,37 @@ using System.Text.Json;
             private async Task ShowUserForGroupForm(int groupid)
             {
                 users = await http.GetFromJsonAsync<List<UserModel>>("api/User/GetUserWithoutGroup");
-                menuAccesses = await http.GetFromJsonAsync<List<MenuAccess>>("api/Navigation/GetUsersOnGroup?GroupId=" + groupid);
 
-                foreach(var item in menuAccesses)
+                var httprequest = await http.GetAsync("api/Navigation/GetUsersOnGroup?GroupId=" + groupid);
+
+                if (httprequest.IsSuccessStatusCode)
                 {
-                    if (users != null && users.Count > 0)
-                    {
-                        var profileName = users.Find(x => x.Id == item.UserId).Name;
-                        item.Name = profileName;
-                        users.RemoveAll(x => x.Id == item.UserId);
-                    }
+                    var httpContent = await httprequest.Content.ReadAsStringAsync();
+
+                    menuAccesses = JsonSerializer.Deserialize<List<MenuAccess>>(httpContent,
+                         new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
                 }
+
+                //if (menuAccesses != null)
+                //{
+
+                //    foreach (var item in menuAccesses)
+                //    {
+                //        if (users != null && users.Count > 0)
+                //        {
+                //            var profileName = users.Find(x => x.Id == item.UserId).Name;
+
+                //            if (profileName is not null)
+                //            {
+                //                item.Name = profileName;
+                //                users.RemoveAll(x => x.Id == item.UserId);
+                //            }
+                //        }
+                //    }
+                //}
+
+
+
                 SelectedGroupId = groupid;
                 MenuAccessModel.GroupId = SelectedGroupId;
 

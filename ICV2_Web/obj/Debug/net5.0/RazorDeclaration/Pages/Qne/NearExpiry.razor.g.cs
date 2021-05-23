@@ -187,14 +187,191 @@ using NEvaldas.Blazor.Select2;
 #line default
 #line hidden
 #nullable disable
+#nullable restore
+#line 2 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\NearExpiry.razor"
+using System.Text.Json;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 3 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\NearExpiry.razor"
+using System.IO;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 4 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\NearExpiry.razor"
+using ClosedXML.Excel;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 5 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\NearExpiry.razor"
+using ICV2_Web.JSHelper;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 6 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\NearExpiry.razor"
+           [Authorize(Roles = "Administrator,User")]
+
+#line default
+#line hidden
+#nullable disable
     [Microsoft.AspNetCore.Components.RouteAttribute("/NearExpiry")]
-    public partial class NearExpiry : Microsoft.AspNetCore.Components.ComponentBase
+    public partial class NearExpiry : Microsoft.AspNetCore.Components.ComponentBase, IDisposable
     {
         #pragma warning disable 1998
         protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder __builder)
         {
         }
         #pragma warning restore 1998
+#nullable restore
+#line 67 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\NearExpiry.razor"
+       
+
+    NEAREXPIRYFILTER formModel = new();
+
+    private IEnumerable<Stocks> Stocks { get; set; }
+    private IEnumerable<StockLocations> Location { get; set; }
+
+    private string CompCode { get; set; }
+
+    private async Task GenerateReport()
+    {
+        formModel.CompanyCode = AppState.selectedCompanyCode;
+
+        var httpRequest = await http.PostAsJsonAsync("api/Report/GenerateNearExp", formModel);
+
+        if (httpRequest.IsSuccessStatusCode)
+        {
+            var responseString = await httpRequest.Content.ReadAsStringAsync();
+
+            //Console.WriteLine(responseString);
+            var data = JsonSerializer.Deserialize<List<NEAREXPIRYRESULT>>(responseString,
+              new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+
+            await GenerateExcel(data);
+        }
+    }
+
+    private async Task GenerateExcel(List<NEAREXPIRYRESULT> data)
+    {
+        using (XLWorkbook wb = new XLWorkbook())
+        {
+
+            int rowNumber = 0;
+
+            IXLWorksheet ws = wb.Worksheets.Add("Near Expiry");
+            IXLCell cell;
+
+            cell = ws.Cell("A" + ++rowNumber).SetValue(formModel.CompanyCode);
+            cell = ws.Cell("A" + ++rowNumber).SetValue("As of Date");
+            cell = ws.Cell("B" + rowNumber).SetValue(formModel.AsOfDate.ToShortDateString().ToString());
+            rowNumber++;
+            cell = ws.Cell("A" + rowNumber).SetValue("EXPIRY DATE");
+            cell = ws.Cell("B" + rowNumber).SetValue("PRODUCT DESCRIPTION");
+            cell = ws.Cell("C" + rowNumber).SetValue("PRODUCT CODE");
+            cell = ws.Cell("D" + rowNumber).SetValue("CLASS NAME");
+            cell = ws.Cell("E" + rowNumber).SetValue("BATCH NO.");
+            cell = ws.Cell("F" + rowNumber).SetValue("STOCK LOCATION");
+            cell = ws.Cell("G" + rowNumber).SetValue("INVENTORY BALANCE");
+            cell = ws.Cell("H" + rowNumber).SetValue("BASE UOM");
+
+
+            foreach (NEAREXPIRYRESULT result in data)
+            {
+                rowNumber++;
+                cell = ws.Cell("A" + rowNumber).SetValue(result.ExpiryDate);
+                cell = ws.Cell("B" + rowNumber).SetValue(result.StockName);
+                cell = ws.Cell("C" + rowNumber).SetValue(result.StockCode);
+                cell = ws.Cell("D" + rowNumber).SetValue(result.ClassName);
+                cell = ws.Cell("E" + rowNumber).SetValue(result.BatchNo);
+                cell = ws.Cell("F" + rowNumber).SetValue(result.LocationName);
+                cell = ws.Cell("G" + rowNumber).SetValue(result.BalQty);
+                cell = ws.Cell("H" + rowNumber).SetValue(result.BaseUOM);
+            }
+
+            ws.Column("A").Width = 16;
+            ws.Column("B").Width = 42;
+            ws.Column("C").Width = 15;
+            ws.Column("D").Width = 25;
+            ws.Column("E").Width = 20;
+            ws.Column("F").Width = 34;
+            ws.Column("G").Width = 21;
+            ws.Column("H").Width = 10;
+
+            if (wb.Worksheets.Count > 0)
+            {
+                MemoryStream ms = GetStream(wb);
+                byte[] bytes = ms.ToArray();
+                ms.Close();
+
+                await js.SaveAsFileAsync("NearExpiryProduct_"+ DateTime.Now.ToShortDateString().ToString(), bytes, "application/vnd.ms-excel");
+            }
+            else
+            {
+                await js.InvokeVoidAsync("alert", "No record found.");
+            }
+
+        }
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState.CompanyReady())
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        CompCode = AppState.selectedCompanyCode;
+
+        Stocks = await http.GetFromJsonAsync<IEnumerable<Stocks>>("api/Qne/GetStockItems?companyCode=" + CompCode);
+        Location = await http.GetFromJsonAsync<IEnumerable<StockLocations>>("api/Qne/GetStockLocations?companyCode=" + CompCode);
+
+    }
+
+    private MemoryStream GetStream(XLWorkbook excelWorkbook)
+    {
+        MemoryStream fs = new MemoryStream();
+        excelWorkbook.SaveAs(fs);
+        fs.Position = 0;
+        return fs;
+    }
+    private async Task AppState_StateChanged(ComponentBase Source, string Property)
+    {
+        if (Source != this)
+        {
+            if (AppState.CompanyReady())
+            {
+                await LoadData();
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    protected override void OnInitialized()
+    {
+        AppState.StateChanged += async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+    void IDisposable.Dispose()
+    {
+        AppState.StateChanged -= async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+
+#line default
+#line hidden
+#nullable disable
+        [global::Microsoft.AspNetCore.Components.InjectAttribute] private IJSRuntime js { get; set; }
+        [global::Microsoft.AspNetCore.Components.InjectAttribute] private HttpClient http { get; set; }
+        [global::Microsoft.AspNetCore.Components.InjectAttribute] private AppState AppState { get; set; }
     }
 }
 #pragma warning restore 1591

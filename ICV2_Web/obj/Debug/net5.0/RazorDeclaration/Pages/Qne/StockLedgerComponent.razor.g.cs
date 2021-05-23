@@ -189,13 +189,34 @@ using NEvaldas.Blazor.Select2;
 #nullable disable
 #nullable restore
 #line 2 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\StockLedgerComponent.razor"
-using DataAccessLibrary.TestModel;
+using System.Text.Json;
 
 #line default
 #line hidden
 #nullable disable
 #nullable restore
 #line 3 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\StockLedgerComponent.razor"
+using System.IO;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 4 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\StockLedgerComponent.razor"
+using ClosedXML.Excel;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 5 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\StockLedgerComponent.razor"
+using ICV2_Web.JSHelper;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 6 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\StockLedgerComponent.razor"
            [Authorize(Roles = "Administrator,User")]
 
 #line default
@@ -210,17 +231,218 @@ using DataAccessLibrary.TestModel;
         }
         #pragma warning restore 1998
 #nullable restore
-#line 41 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\StockLedgerComponent.razor"
+#line 130 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\StockLedgerComponent.razor"
        
 
 
-    List<Stocks> Stocks = new();
+    STOCKLEDGERWITHBATCHFILTER formModel = new();
+
+    private IEnumerable<StockLocations> Location { get; set; }
+    private IEnumerable<StockGroups> StockGroup { get; set; }
+    private IEnumerable<Stocks> Stocks { get; set; }
+    private List<stockbatchnumbers> batchnumbers { get; set; }
+    private string CompCode { get; set; }
+
+    private async Task StCodeOnchange(ChangeEventArgs e)
+    {
+        if(e.Value.ToString() != string.Empty)
+        {
+            var stockId = Stocks.First(x => x.StockCode == e.Value.ToString()).Id;
+
+            var httpRequest = await http.GetAsync($"api/Qne/GetBatchByStockId?companyCode={CompCode}&StockId={stockId}");
+
+            if (httpRequest.IsSuccessStatusCode)
+            {
+                var responseString = await httpRequest.Content.ReadAsStringAsync();
+
+                batchnumbers = JsonSerializer.Deserialize<List<stockbatchnumbers>>(responseString,
+                 new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+
+                //if(data.Count > 0)
+                //{
+                //    foreach(var item in data)
+                //    {
+                //        batchnumbers.Add(item);
+                //    }
+                //}
+            }
+        }
+        else
+        {
+            batchnumbers = new();
+        }
+    }
+
+    private async Task GenerateReport()
+    {
+        formModel.CompanyCode = AppState.selectedCompanyCode;
+
+        var httpRequest = await http.PostAsJsonAsync("api/Report/GenerateStockLedgerWBatch", formModel);
+
+        if (httpRequest.IsSuccessStatusCode)
+        {
+            var responseString = await httpRequest.Content.ReadAsStringAsync();
+
+            //Console.WriteLine(responseString);
+            var data = JsonSerializer.Deserialize<List<STOCKLEDGERWITHBATCHRESULT>>(responseString,
+              new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+
+            await GenerateExcel(data);
+        }
+    }
+    private async Task GenerateExcel(List<STOCKLEDGERWITHBATCHRESULT> data)
+    {
+        using (XLWorkbook wb = new XLWorkbook())
+        {
+
+            int rowNumber = 0;
+
+            IXLWorksheet ws = wb.Worksheets.Add("StockLedger");
+            IXLCell cell;
+
+            cell = ws.Cell("A" + ++rowNumber).SetValue(formModel.CompanyCode);
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+            cell.Style.Font.Bold = true;
+
+            var datetimeTo = formModel.DateTo == null ? DateTime.Now : formModel.DateTo;
+
+            if (formModel.DateFrom is null)
+            {
+
+                cell = ws.Cell("A" + ++rowNumber).SetValue("As of " + datetimeTo?.ToString("MMM dd, yyyy"));
+                cell.Style.Font.Bold = true;
+            }
+            else
+            {
+
+                cell = ws.Cell("A" + ++rowNumber).SetValue("Date From ");
+                cell.Style.Font.Bold = true;
+                cell = ws.Cell("B" + rowNumber).SetValue(formModel.DateFrom?.ToShortDateString());
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("A" + ++rowNumber).SetValue("Date To ");
+                cell.Style.Font.Bold = true;
+                cell = ws.Cell("B" + rowNumber).SetValue(formModel.DateTo?.ToShortDateString());
+                cell.Style.Font.Bold = true;
+
+            }
+
+            #region Excel header
+            cell = ws.Cell("A" + ++rowNumber).SetValue("STOCKCODE");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("B" + rowNumber).SetValue("STOCK NAME");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("C" + rowNumber).SetValue("BATCHNO");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("D" + rowNumber).SetValue("DATE MANUFACTURED");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("E" + rowNumber).SetValue("DATE OF EXPIRATION");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("F" + rowNumber).SetValue("REF TYPE");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("G" + rowNumber).SetValue("REF #");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("H" + rowNumber).SetValue("REF DATE");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("I" + rowNumber).SetValue("IN");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("J" + rowNumber).SetValue("OUT");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("K" + rowNumber).SetValue("BALANCE");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("L" + rowNumber).SetValue("UOM");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("M" + rowNumber).SetValue("U.COST");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("N" + rowNumber).SetValue("SELLING PRICE");
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("O" + rowNumber).SetValue("LOCATION CODE");
+            cell.Style.Font.Bold = true;
+
+            #endregion
+            foreach (STOCKLEDGERWITHBATCHRESULT result in data)
+            {
+                rowNumber++;
+                cell = ws.Cell("A" + rowNumber).SetValue(result.StockCode);
+                cell = ws.Cell("B" + rowNumber).SetValue(result.StockName);
+                cell = ws.Cell("C" + rowNumber).SetValue(result.BatchNo);
+                cell = ws.Cell("D" + rowNumber).SetValue(result.BatchNoManufacturingDate);
+                cell = ws.Cell("E" + rowNumber).SetValue(result.BatchNoExpiryDate);
+                cell = ws.Cell("F" + rowNumber).SetValue(result.DocType);
+                cell = ws.Cell("G" + rowNumber).SetValue(result.DocumentCode);
+                cell = ws.Cell("H" + rowNumber).SetValue(result.DocumentDate);
+                cell = ws.Cell("I" + rowNumber).SetValue(result.StockIn);
+                cell = ws.Cell("J" + rowNumber).SetValue(result.StockOut);
+                cell = ws.Cell("K" + rowNumber).SetValue(String.Empty);
+                cell = ws.Cell("L" + rowNumber).SetValue(result.BaseUOM);
+                cell = ws.Cell("M" + rowNumber).SetValue(result.PurchaseCost);
+                cell = ws.Cell("N" + rowNumber).SetValue(result.SellingPrice);
+                cell = ws.Cell("O" + rowNumber).SetValue(result.LocationCode);
+
+            }
+
+            ws.Column("A").Width = 15;
+            ws.Column("B").Width = 15;
+            ws.Column("C").Width = 15;
+            ws.Column("D").Width = 15;
+            ws.Column("E").Width = 15;
+            ws.Column("F").Width = 15;
+            ws.Column("G").Width = 15;
+            ws.Column("H").Width = 15;
+            ws.Column("I").Width = 15;
+            ws.Column("J").Width = 15;
+            ws.Column("K").Width = 15;
+            ws.Column("L").Width = 15;
+            ws.Column("M").Width = 15;
+            ws.Column("N").Width = 15;
+            ws.Column("O").Width = 15;
+
+
+            if (wb.Worksheets.Count > 0)
+            {
+                MemoryStream ms = GetStream(wb);
+                byte[] bytes = ms.ToArray();
+                ms.Close();
+
+                await js.SaveAsFileAsync("StockLedger_" + DateTime.Now.ToShortDateString().ToString(), bytes, "application/vnd.ms-excel");
+            }
+            else
+            {
+                await js.InvokeVoidAsync("alert", "No record found.");
+            }
+
+        }
+    }
+
+    private MemoryStream GetStream(XLWorkbook excelWorkbook)
+    {
+        MemoryStream fs = new MemoryStream();
+        excelWorkbook.SaveAs(fs);
+        fs.Position = 0;
+        return fs;
+    }
 
     private async Task LoadData()
     {
-        //ConnectionUsed = QNEConnectionString.ChooseConnection(AppState.selectedCompanyCode);
+        CompCode = AppState.selectedCompanyCode;
 
-        Stocks = await http.GetFromJsonAsync<List<Stocks>>("api/Qne/GetStockItems?companyCode=" + AppState.selectedCompanyCode);
+        StockGroup = await http.GetFromJsonAsync<IEnumerable<StockGroups>>("api/Qne/GetStockGroups?companyCode=" + CompCode);
+        Location = await http.GetFromJsonAsync<IEnumerable<StockLocations>>("api/Qne/GetStockLocations?companyCode=" + CompCode);
+        Stocks = await http.GetFromJsonAsync<IEnumerable<Stocks>>("api/Qne/GetStockItems?companyCode=" + CompCode);
     }
 
 
@@ -254,6 +476,7 @@ using DataAccessLibrary.TestModel;
 #line default
 #line hidden
 #nullable disable
+        [global::Microsoft.AspNetCore.Components.InjectAttribute] private IJSRuntime js { get; set; }
         [global::Microsoft.AspNetCore.Components.InjectAttribute] private HttpClient http { get; set; }
         [global::Microsoft.AspNetCore.Components.InjectAttribute] private AppState AppState { get; set; }
     }

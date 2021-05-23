@@ -39,3 +39,4 @@ F:\Blazor\InventoryControlV2\ICV2_API\obj\x64\Debug\netcoreapp3.1\ICV2_API.dll
 F:\Blazor\InventoryControlV2\ICV2_API\obj\x64\Debug\netcoreapp3.1\ICV2_API.pdb
 F:\Blazor\InventoryControlV2\ICV2_API\obj\x64\Debug\netcoreapp3.1\ICV2_API.genruntimeconfig.cache
 F:\Blazor\InventoryControlV2\ICV2_API\bin\x64\Debug\netcoreapp3.1\System.ComponentModel.Annotations.dll
+F:\Blazor\InventoryControlV2\ICV2_API\bin\x64\Debug\netcoreapp3.1\System.Linq.Dynamic.Core.dll

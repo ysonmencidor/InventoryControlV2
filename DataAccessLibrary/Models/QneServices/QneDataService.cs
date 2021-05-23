@@ -7,6 +7,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Text;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace DataAccessLibrary.Models.QneServices
 {
@@ -169,5 +170,22 @@ namespace DataAccessLibrary.Models.QneServices
 
             }
         }
+        public async Task<IEnumerable<StockIssue>> GetStockIssuesAsync(string companyCode)
+        {
+            using (IDbConnection con = new SqlConnection(QNEConnectionString.ChooseConnection(companyCode)))
+            {
+                const string sql = @"SELECT Id,StockOutCode FROM StockOuts ORDER BY StockOutCode DESC";
+                return await con.QueryAsync<StockIssue>(sql, commandType:CommandType.Text);
+            }
+        }
+        public async Task<IEnumerable<stockbatchnumbers>> GetBatchNumByStockId(string companyCode, Guid StockId)
+        {
+            using (IDbConnection con = new SqlConnection(QNEConnectionString.ChooseConnection(companyCode)))
+            {
+                const string sql = @"SELECT Id,StockId,BatchNo FROM StockBatchNumbers WHERE StockId = @StockId";
+                return await con.QueryAsync<stockbatchnumbers>(sql, new { StockId }, commandType: CommandType.Text);
+            }
+        }
+
     }
 }

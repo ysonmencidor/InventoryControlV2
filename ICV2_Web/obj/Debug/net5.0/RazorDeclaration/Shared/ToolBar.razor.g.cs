@@ -215,7 +215,7 @@ using NEvaldas.Blazor.Select2;
     {
         AppState.UpdateSelectedCompany(this,value);
 
-        Console.WriteLine(AppState.selectedCompanyCode);
+       // Console.WriteLine(AppState.selectedCompanyCode);
     }
 
     protected override void OnInitialized()

@@ -99,9 +99,14 @@ namespace ICV2_API.Controllers
         
         [Route("GetUsersOnGroup")]
         [HttpGet]
-        public async Task<IEnumerable<MenuAccess>> GetUsersOnGroup(int GroupId)
+        public async Task<IActionResult> GetUsersOnGroup(int GroupId)
         {
-            return await menu.GetUsersOnGroup(GroupId);
+            var model = await menu.GetUsersOnGroup(GroupId);
+            if (model != null)
+            {
+                return Ok(model);
+            }
+            return BadRequest();
         }
         [Route("InserUserToGroup")]
         [HttpPost]

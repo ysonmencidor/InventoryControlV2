@@ -203,7 +203,7 @@ using System.Text.Json;
         }
         #pragma warning restore 1998
 #nullable restore
-#line 251 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Manage\ManageGroup.razor"
+#line 263 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Manage\ManageGroup.razor"
                
             private Modal modalManage;
             private Modal modalRef;
@@ -221,9 +221,12 @@ using System.Text.Json;
             private List<MenuInfo> menuList { get; set; } = new List<MenuInfo>();
             private List<AssignedMenu> assignedMenus { get; set; } = new List<AssignedMenu>();
 
+            private List<UsersInGroup> usersInGroups { get; set; } = new List<UsersInGroup>();
+
             Group model = new();
             private string title { get; set; }
             private List<Group> groups { get; set; } = new List<Group>();
+
             private async Task RemoveAssigned(AssignedMenu assignedMenu)
             {
                 var httprequest = await http.PostAsJsonAsync("api/Navigation/UnAssigMenu", assignedMenu);
@@ -269,7 +272,7 @@ using System.Text.Json;
             }
             private async Task AddUserToGroup()
             {
-                Console.WriteLine(MenuAccessModel.UserId);
+                //Console.WriteLine(MenuAccessModel.UserId);
                 if (MenuAccessModel.GroupId > 0 && MenuAccessModel.UserId > 0)
                 {
                     var name = users.Find(x => x.Id == MenuAccessModel.UserId).Name;
@@ -277,7 +280,6 @@ using System.Text.Json;
                     if(!string.IsNullOrEmpty(name)){
                         MenuAccessModel.Name = name;
                     }
-
 
                     var httpResponse = await http.PostAsJsonAsync("api/Navigation/InserUserToGroup", MenuAccessModel);
                     if (httpResponse.IsSuccessStatusCode)
@@ -291,12 +293,36 @@ using System.Text.Json;
                             Name = MenuAccessModel.Name,
                             UserId = MenuAccessModel.UserId
                         };
-
+                        await LoadUsersInGroup();
                         menuAccesses.Add(newModel);
 
                         users.RemoveAll(x => x.Id == newModel.UserId);
 
                         MenuAccessModel.UserId = 0;
+                        this.StateHasChanged();
+                    }
+
+                    //Console.WriteLine(SelectedUserId);
+                }
+                else
+                {
+                    await js.InvokeVoidAsync("alert", "Please select user.");
+                }
+            }
+
+            private async Task RemoveUserToGrup(MenuAccess menuAccess)
+            {
+
+                if (menuAccess.GroupId > 0 && menuAccess.UserId > 0)
+                {
+
+                    var httpResponse = await http.PostAsJsonAsync("api/Navigation/DeleteUserToGroup", menuAccess);
+                    if (httpResponse.IsSuccessStatusCode)
+                    {
+                        menuAccesses.Remove(menuAccess);
+                        users = await http.GetFromJsonAsync<List<UserModel>>("api/User/GetUserWithoutGroup");
+                        await LoadUsersInGroup();
+                        //MenuAccessModel.UserId = 0;
                         this.StateHasChanged();
                     }
 
@@ -422,7 +448,17 @@ using System.Text.Json;
 
             private async Task LoadData()
             {
+
                 groups = await http.GetFromJsonAsync<List<Group>>("api/Navigation/GetGroups");
+
+                await LoadUsersInGroup();
+            }
+            private async Task LoadUsersInGroup()
+            {
+                if (groups != null)
+                {
+                    usersInGroups = await http.GetFromJsonAsync<List<UsersInGroup>>("api/Navigation/CountUsersInGroup");
+                }
             }
         
 

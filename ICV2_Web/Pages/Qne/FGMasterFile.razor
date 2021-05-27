@@ -10,59 +10,68 @@
 @inject IJSRuntime js
 
 
-<h3>FGMasterFile</h3>
-<div class="card">
-    <div class="card-header">
+@if (AppState.CompanyReady())
+{
 
-    </div>
-    <div class="card-body">
+    <div class="card shadow">
+        <div class="card-header bg-secondary text-white">
+            Finish goods master filing
+        </div>
+        <div class="card-body">
 
-        <table class="table table-condensed table-bordered table-hover">
-            <thead>
-                <tr>
-                    <th>STOCK CODE</th>
-                    <th>STOCK NAME</th>
-                    <th>SWINE</th>
-                    <th>POULTRY</th>
-                    <th>COMMON</th>
-                </tr>
-            </thead>
-            <tbody>
-
-                @if (model != null)
-                {
-                    @foreach (var item in model)
-                    {
-                        //bool swine = item.SWINE == null ? false : item.SWINE == true ? true : false;
-                        //bool poultry = item.POULTRY == null ? false : item.POULTRY == true ? true : false;
-                        //bool common = item.COMMON == null ? false : item.COMMON == true ? true : false;
-
+            <table class="table table-condensed table-bordered table-hover">
+                <thead>
                     <tr>
-                    <td>@item.StockCode</td>
-                    <td>@item.StockName</td>
-                    <td><input type="checkbox" @onchange="((args)=> CheckChanged(item, args.Value,'S'))" checked="@item.SWINE" /></td>
-                    <td><input type="checkbox" @onchange="((args)=> CheckChanged(item, args.Value,'P'))"  checked="@item.POULTRY"/></td>
-                    <td><input type="checkbox" @onchange="((args)=> CheckChanged(item, args.Value,'C'))" checked="@item.COMMON"/></td>
-                </tr>
+                        <th>STOCK CODE</th>
+                        <th>STOCK NAME</th>
+                        <th>SWINE</th>
+                        <th>POULTRY</th>
+                        <th>COMMON</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    @if (model != null)
+                    {
+                        @foreach (var item in model)
+                        {
+                            //bool swine = item.SWINE == null ? false : item.SWINE == true ? true : false;
+                            //bool poultry = item.POULTRY == null ? false : item.POULTRY == true ? true : false;
+                            //bool common = item.COMMON == null ? false : item.COMMON == true ? true : false;
+
+                            <tr>
+                                <td>@item.StockCode</td>
+                                <td>@item.StockName</td>
+                                <td><input type="checkbox" @onchange="((args)=> CheckChanged(item, args.Value,'S'))" checked="@item.SWINE" /></td>
+                                <td><input type="checkbox" @onchange="((args)=> CheckChanged(item, args.Value,'P'))" checked="@item.POULTRY" /></td>
+                                <td><input type="checkbox" @onchange="((args)=> CheckChanged(item, args.Value,'C'))" checked="@item.COMMON" /></td>
+                            </tr>
+                        }
                     }
-                }
-                    </tbody>
+                </tbody>
 
-        </table>
+            </table>
+        </div>
+        <div class="card-footer">
+
+        </div>
     </div>
-    <div class="card-footer">
-
+}
+else
+{
+    <div class="col-6">
+        <h4 class="alert alert-info text-center shadow">SELECT COMPANY FIRST</h4>
     </div>
-</div>
-
+}
 @code {
     private List<FGMASTERFILEMODEL> model { get; set; } = new List<FGMASTERFILEMODEL>();
     private FGMASTERFILEMODEL Selected { get; set; }
     private string CompCode { get; set; }
 
-    protected async Task CheckChanged(FGMASTERFILEMODEL fg,object checkBoxState,Char category)
+    protected async Task CheckChanged(FGMASTERFILEMODEL fg, object checkBoxState, Char category)
     {
-        var file = new FGMASTERFILEFILTER {
+        var file = new FGMASTERFILEFILTER
+        {
             StockCode = fg.StockCode,
             IsChecked = (Boolean)checkBoxState,
             Category = category,

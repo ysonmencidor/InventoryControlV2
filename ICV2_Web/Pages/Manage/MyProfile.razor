@@ -1,0 +1,164 @@
+﻿@page "/Profile"
+
+@attribute [Authorize(Roles = "Administrator,User")]
+@inject IJSRuntime js
+@inject HttpClient http
+
+@if (userModel != null)
+{
+    <div class="row">
+        <div class="col-6">
+
+            <div class="card shadow">
+
+                <div class="card-header bg-secondary text-white">
+                    Profile
+                </div>
+                <div class="card-body">
+
+                    <div class="form-group row">
+                        <label for="username" class="col-sm-4 col-form-label">Username </label>
+                        <div class="col-sm-8">
+                            <input type="text" readonly class="form-control" value="@userModel.Username" id="username" />
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="name" class="col-sm-4 col-form-label">Name </label>
+                        <div class="col-sm-8">
+                            <input type="text" readonly class="form-control" value="@userModel.Name" id="name" />
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="r" class="col-sm-4 col-form-label">Role </label>
+                        <div class="col-sm-8">
+                            <input type="text" readonly class="form-control" value="@userModel.RoleName" id="r" />
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="a" class="col-sm-4 col-form-label">Access type </label>
+                        <div class="col-sm-8">
+                            <input type="text" readonly class="form-control" value="@userModel.AccessType" id="a" />
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-secondary btn-sm" @onclick="showModalChangePass">Change password</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <Modal @ref="modalP">
+        <ModalContent Centered="true">
+            <EditForm Model="DefaultPassmodel" autocomplete="false" OnValidSubmit="SaveData">
+                <ModalHeader>
+                    <ModalTitle>Change password</ModalTitle>
+                    <CloseButton Clicked="@HideModal" />
+                </ModalHeader>
+                <ModalBody>
+                    <DataAnnotationsValidator />
+                    <Microsoft.AspNetCore.Components.Forms.ValidationSummary />
+
+                    <div class="form-group row">
+                        <label for="oldp" class="col-sm-4 col-form-label">Old Password </label>
+                        <div class="col-sm-8">
+                            <InputText type="password" class="form-control" @bind-Value="DefaultPassmodel.OldPasss" id="oldp"></InputText>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="newp" class="col-sm-4 col-form-label">New Password </label>
+                        <div class="col-sm-8">
+                            <InputText type="password" class="form-control" @bind-Value="DefaultPassmodel.NewPassword" id="newp"></InputText>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="cnewp" class="col-sm-4 col-form-label">Old Password </label>
+                        <div class="col-sm-8">
+                            <InputText type="password" class="form-control" @bind-Value="DefaultPassmodel.RepeatPassword" id="cnewp"></InputText>
+                        </div>
+                    </div>
+
+                </ModalBody>
+                <ModalFooter>
+                    <Button Color="Color.Secondary" Size="Size.Small" Clicked="@HideModal">Cancel</Button>
+                    <Button Color="Color.Primary" Size="Size.Small" Type="ButtonType.Submit">Save</Button>
+                </ModalFooter>
+            </EditForm>
+        </ModalContent>
+    </Modal>
+}
+else
+{
+    <em>Loading..</em>
+}
+@code {
+
+    private DefaultPass DefaultPassmodel = new();
+
+    private string oldpassword { get; set; }
+
+    [CascadingParameter]
+    public Task<AuthenticationState> authenticationState { get; set; }
+
+    private UserModel userModel { get; set; }
+
+    Modal modalP;
+
+    private void showModalChangePass()
+    {
+        modalP.Show();
+
+    }
+    private void HideModal()
+    {
+        DefaultPassmodel = new();
+        modalP.Hide();
+    }
+    protected override Task OnInitializedAsync()
+    {
+        return base.OnInitializedAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var user = (await authenticationState).User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            var claim2 = user.FindFirst(x => x.Type == System.Security.Claims.ClaimTypes.NameIdentifier);
+            int u_Id = Convert.ToInt32(claim2.Value);
+
+            userModel = await http.GetFromJsonAsync<UserModel>($"api/User/GetUserById/{u_Id}");
+            if (userModel != null)
+            {
+                oldpassword = userModel.Password;
+            }
+
+        }
+    }
+    private async Task SaveData()
+    {
+        if (oldpassword == DefaultPassmodel.OldPasss)
+        {
+            DefaultPassmodel.Username = userModel.Username;
+            var httpRequest = await http.PostAsJsonAsync("api/User/changePFromDefault", DefaultPassmodel);
+            if (httpRequest.IsSuccessStatusCode)
+            {
+                var content = await httpRequest.Content.ReadAsStringAsync();
+                if (Convert.ToInt32(content) > 0)
+                {
+                    await js.InvokeVoidAsync("alert", "Change password successfully!");
+                    oldpassword = DefaultPassmodel.RepeatPassword;
+                    HideModal();
+                }
+            }
+        }
+        else
+        {
+            await js.InvokeVoidAsync("alert", "Invalid old password.");
+        }
+    }
+
+}

@@ -1,0 +1,9 @@
+﻿<StaticWebAssets Version="1.0">
+  <ContentRoot BasePath="/" Path="F:\Blazor\InventoryControlV2\ICV2_Web\bin\Release\net5.0\wwwroot\" />
+  <ContentRoot BasePath="/" Path="F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\scopedcss\bundle\" />
+  <ContentRoot BasePath="_content/Blazored.Modal" Path="C:\Users\yson\.nuget\packages\blazored.modal\6.0.1\build\..\staticwebassets\" />
+  <ContentRoot BasePath="_content/Blazorise" Path="C:\Users\yson\.nuget\packages\blazorise\0.9.3.4\build\..\staticwebassets\" />
+  <ContentRoot BasePath="_content/Blazorise.Bootstrap" Path="C:\Users\yson\.nuget\packages\blazorise.bootstrap\0.9.3.4\build\..\staticwebassets\" />
+  <ContentRoot BasePath="_content/Blazorise.Sidebar" Path="C:\Users\yson\.nuget\packages\blazorise.sidebar\0.9.3.4\build\..\staticwebassets\" />
+  <ContentRoot BasePath="_content/NEvaldas.Blazor.Select2" Path="C:\Users\yson\.nuget\packages\nevaldas.blazor.select2\0.1.0\build\..\staticwebassets\" />
+</StaticWebAssets>

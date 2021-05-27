@@ -231,7 +231,7 @@ using ICV2_Web.JSHelper;
         }
         #pragma warning restore 1998
 #nullable restore
-#line 77 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\Category.razor"
+#line 84 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\Category.razor"
        
 
     CATEGORIZEFILTER formModel = new();
@@ -251,7 +251,7 @@ using ICV2_Web.JSHelper;
             var data = JsonSerializer.Deserialize<CATEGORIZE_FINAL>(responseString,
               new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
 
-            GenerateExcel(data.CATEGORIZERESULTS.ToList(),data.CATEGORIZERESULTCREDITS.ToList(),data.SUMMARY_FOR_AGENTS.ToList());
+            GenerateExcel(data.CATEGORIZERESULTS.ToList(), data.CATEGORIZERESULTCREDITS.ToList(), data.SUMMARY_FOR_AGENTS.ToList());
 
             Console.WriteLine(formModel.category);
             //GenerateExcel(Result);
@@ -266,7 +266,7 @@ using ICV2_Web.JSHelper;
     #region excel
 
 
-    private async void GenerateExcel(List<CATEGORIZERESULT> resultList, List<CATEGORIZERESULT> resultListCredit,List<CATEGORIZE_SUMMARY_AGENT> listagent)
+    private async void GenerateExcel(List<CATEGORIZERESULT> resultList, List<CATEGORIZERESULT> resultListCredit, List<CATEGORIZE_SUMMARY_AGENT> listagent)
     {
         using (XLWorkbook wb = new XLWorkbook())
         {
@@ -511,10 +511,6 @@ using ICV2_Web.JSHelper;
                         common_invalid_format += item.AMOUNT;
                     }
 
-
-
-
-
                 }
                 else
                 {
@@ -539,9 +535,9 @@ using ICV2_Web.JSHelper;
 
                         string charlast1 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 3, 3); // - P 3
 
-                        string charlast2 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 5, 5); // ( P ) 5 
+                        string charlast2 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 5, 5); // ( P ) 5
 
-                        string charlast3 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 2, 2); // -P 2 
+                        string charlast3 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 2, 2); // -P 2
 
 
 
@@ -784,9 +780,9 @@ using ICV2_Web.JSHelper;
 
                     string charlast1 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 3, 3); // - P 3
 
-                    string charlast2 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 5, 5); // ( P ) 5 
+                    string charlast2 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 5, 5); // ( P ) 5
 
-                    string charlast3 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 2, 2); // -P 2 
+                    string charlast3 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 2, 2); // -P 2
 
 
                     if (charlast == "(S)" || charlast1 == "- S" || charlast2 == "( S )" || charlast3 == "-S" || charlast == "(s)" || charlast1 == "- s" || charlast2 == "( s )" || charlast3 == "-s")
@@ -829,9 +825,9 @@ using ICV2_Web.JSHelper;
 
                         string charlast1 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 3, 3); // - P 3
 
-                        string charlast2 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 5, 5); // ( P ) 5 
+                        string charlast2 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 5, 5); // ( P ) 5
 
-                        string charlast3 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 2, 2); // -P 2 
+                        string charlast3 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 2, 2); // -P 2
 
 
                         if (charlast == "(S)" || charlast1 == "- S" || charlast2 == "( S )" || charlast3 == "-S" || charlast == "(s)" || charlast1 == "- s" || charlast2 == "( s )" || charlast3 == "-s")
@@ -1109,7 +1105,7 @@ using ICV2_Web.JSHelper;
 
 
                 cell = ws.Cell("A" + rowNumber).SetValue(item.SALESPERSONCODE);
-               
+
                 foreach (CATEGORIZERESULT item2 in resultListCredit)
                 {
                     if (item.SALESPERSONCODE == item2.SALESPERSONCODE)
@@ -1177,9 +1173,9 @@ using ICV2_Web.JSHelper;
 
                             string charlast1 = item2.DESCRIPTION.Substring(item2.DESCRIPTION.Length - 3, 3); // - P 3
 
-                            string charlast2 = item2.DESCRIPTION.Substring(item2.DESCRIPTION.Length - 5, 5); // ( P ) 5 
+                            string charlast2 = item2.DESCRIPTION.Substring(item2.DESCRIPTION.Length - 5, 5); // ( P ) 5
 
-                            string charlast3 = item2.DESCRIPTION.Substring(item2.DESCRIPTION.Length - 2, 2); // -P 2 
+                            string charlast3 = item2.DESCRIPTION.Substring(item2.DESCRIPTION.Length - 2, 2); // -P 2
 
 
                             if (charlast == "(S)" || charlast1 == "- S" || charlast2 == "( S )" || charlast3 == "-S" || charlast == "(s)" || charlast1 == "- s" || charlast2 == "( s )" || charlast3 == "-s")

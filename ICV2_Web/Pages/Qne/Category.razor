@@ -8,72 +8,79 @@
 @inject AppState AppState
 @inject HttpClient http
 @inject IJSRuntime js
+@if (AppState.CompanyReady())
+{
+
+    <div class="card shadow">
+        @if (formModel != null)
+        {
+            <EditForm id="MyForm" Model="formModel" OnSubmit="GenerateReport">
+                <div class="card-header bg-secondary text-white">
+                    Sales Report
+                </div>
+                <div class="card-body">
+
+                    <div class="form-group row">
+                        <label for="agents" class="col-sm-2 col-form-label">Agent</label>
+                        <div class="col-sm-10">
+                            <InputSelect id="agents" @bind-Value="formModel.salesPersonCode" class="form-control">
+                                <option value="%%">All</option>
+                                @if (salesPersons is not null)
+                                        {
+                                    @foreach (var item in salesPersons)
+                                            {
+                                        <option value="@item.StaffCode">@item.StaffCode - @item.Name</option>
+                                            }
+                                        }
+                            </InputSelect>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="cat" class="col-sm-2 col-form-label">Product Category</label>
+                        <div class="col-sm-10">
+                            <InputSelect id="cat" @bind-Value="formModel.category" class="form-control">
+                                <option value="%%">All</option>
+                                <option value="1">Swine</option>
+                                <option value="2">Poultry</option>
+                                <option value="3">Common</option>
+                            </InputSelect>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="datefrom" class="col-sm-2 col-form-label">Date from</label>
+                        <div class="col-sm-10">
+                            <InputDate id="datefrom" @bind-Value="formModel.DateFrom" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="dateTo" class="col-sm-2 col-form-label">Date to</label>
+                        <div class="col-sm-10">
+                            <InputDate id="dateTo" @bind-Value="formModel.DateTo" class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="form-check">
+                        <InputCheckbox class="form-check-input" @bind-Value="formModel.WithVat" id="vat"></InputCheckbox>
+                        <label class="form-check-label" for="vat">With Vat</label>
+                    </div>
 
 
-<div class="card">
-    @if (formModel != null)
-    {
-        <EditForm id="MyForm" Model="formModel" OnSubmit="GenerateReport">
-            <div class="card-header bg-secondary text-white shadow">
-                Sales Report
-            </div>
-            <div class="card-body">
-
-                <div class="form-group row">
-                    <label for="agents" class="col-sm-2 col-form-label">Agent</label>
-                    <div class="col-sm-10">
-                        <InputSelect id="agents" @bind-Value="formModel.salesPersonCode" class="form-control">
-                            <option value="%%">All</option>
-                                 @if (salesPersons is not null)
-                                {
-                                     @foreach (var item in salesPersons)
-                                    {
-                                    <option value="@item.StaffCode">@item.StaffCode - @item.Name</option>
-                                    }
-                                }
-                        </InputSelect>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-outline-info">Generate Report</button>
                     </div>
                 </div>
-                <div class="form-group row">
-                    <label for="cat" class="col-sm-2 col-form-label">Product Category</label>
-                    <div class="col-sm-10">
-                        <InputSelect id="cat" @bind-Value="formModel.category" class="form-control">
-                            <option value="%%">All</option>
-                            <option value="1">Swine</option>
-                            <option value="2">Poultry</option>
-                            <option value="3">Common</option>
-                        </InputSelect>
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="datefrom" class="col-sm-2 col-form-label">Date from</label>
-                    <div class="col-sm-10">
-                        <InputDate id="datefrom" @bind-Value="formModel.DateFrom" class="form-control" />
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="dateTo" class="col-sm-2 col-form-label">Date to</label>
-                    <div class="col-sm-10">
-                        <InputDate id="dateTo" @bind-Value="formModel.DateTo" class="form-control" />
-                    </div>
-                </div>
-
-                <div class="form-check">
-                    <InputCheckbox class="form-check-input" @bind-Value="formModel.WithVat" id="vat"></InputCheckbox>
-                    <label class="form-check-label" for="vat">With Vat</label>
-                </div>
-
-
-            </div>
-            <div class="card-footer">
-                <div class="d-flex justify-content-end">
-                    <button type="submit" class="btn btn-outline-info">Generate Report</button>
-                </div>
-            </div>
-        </EditForm>
-    }
-</div>
-
+            </EditForm>
+        }
+    </div>
+}
+else
+{
+    <div class="col-6">
+        <h4 class="alert alert-info text-center shadow">SELECT COMPANY FIRST</h4>
+    </div>
+}
 @code {
 
     CATEGORIZEFILTER formModel = new();
@@ -93,7 +100,7 @@
             var data = JsonSerializer.Deserialize<CATEGORIZE_FINAL>(responseString,
               new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
 
-            GenerateExcel(data.CATEGORIZERESULTS.ToList(),data.CATEGORIZERESULTCREDITS.ToList(),data.SUMMARY_FOR_AGENTS.ToList());
+            GenerateExcel(data.CATEGORIZERESULTS.ToList(), data.CATEGORIZERESULTCREDITS.ToList(), data.SUMMARY_FOR_AGENTS.ToList());
 
             Console.WriteLine(formModel.category);
             //GenerateExcel(Result);
@@ -108,7 +115,7 @@
     #region excel
 
 
-    private async void GenerateExcel(List<CATEGORIZERESULT> resultList, List<CATEGORIZERESULT> resultListCredit,List<CATEGORIZE_SUMMARY_AGENT> listagent)
+    private async void GenerateExcel(List<CATEGORIZERESULT> resultList, List<CATEGORIZERESULT> resultListCredit, List<CATEGORIZE_SUMMARY_AGENT> listagent)
     {
         using (XLWorkbook wb = new XLWorkbook())
         {
@@ -353,10 +360,6 @@
                         common_invalid_format += item.AMOUNT;
                     }
 
-
-
-
-
                 }
                 else
                 {
@@ -381,9 +384,9 @@
 
                         string charlast1 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 3, 3); // - P 3
 
-                        string charlast2 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 5, 5); // ( P ) 5 
+                        string charlast2 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 5, 5); // ( P ) 5
 
-                        string charlast3 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 2, 2); // -P 2 
+                        string charlast3 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 2, 2); // -P 2
 
 
 
@@ -626,9 +629,9 @@
 
                     string charlast1 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 3, 3); // - P 3
 
-                    string charlast2 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 5, 5); // ( P ) 5 
+                    string charlast2 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 5, 5); // ( P ) 5
 
-                    string charlast3 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 2, 2); // -P 2 
+                    string charlast3 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 2, 2); // -P 2
 
 
                     if (charlast == "(S)" || charlast1 == "- S" || charlast2 == "( S )" || charlast3 == "-S" || charlast == "(s)" || charlast1 == "- s" || charlast2 == "( s )" || charlast3 == "-s")
@@ -671,9 +674,9 @@
 
                         string charlast1 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 3, 3); // - P 3
 
-                        string charlast2 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 5, 5); // ( P ) 5 
+                        string charlast2 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 5, 5); // ( P ) 5
 
-                        string charlast3 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 2, 2); // -P 2 
+                        string charlast3 = item.DESCRIPTION.Substring(item.DESCRIPTION.Length - 2, 2); // -P 2
 
 
                         if (charlast == "(S)" || charlast1 == "- S" || charlast2 == "( S )" || charlast3 == "-S" || charlast == "(s)" || charlast1 == "- s" || charlast2 == "( s )" || charlast3 == "-s")
@@ -951,7 +954,7 @@
 
 
                 cell = ws.Cell("A" + rowNumber).SetValue(item.SALESPERSONCODE);
-               
+
                 foreach (CATEGORIZERESULT item2 in resultListCredit)
                 {
                     if (item.SALESPERSONCODE == item2.SALESPERSONCODE)
@@ -1019,9 +1022,9 @@
 
                             string charlast1 = item2.DESCRIPTION.Substring(item2.DESCRIPTION.Length - 3, 3); // - P 3
 
-                            string charlast2 = item2.DESCRIPTION.Substring(item2.DESCRIPTION.Length - 5, 5); // ( P ) 5 
+                            string charlast2 = item2.DESCRIPTION.Substring(item2.DESCRIPTION.Length - 5, 5); // ( P ) 5
 
-                            string charlast3 = item2.DESCRIPTION.Substring(item2.DESCRIPTION.Length - 2, 2); // -P 2 
+                            string charlast3 = item2.DESCRIPTION.Substring(item2.DESCRIPTION.Length - 2, 2); // -P 2
 
 
                             if (charlast == "(S)" || charlast1 == "- S" || charlast2 == "( S )" || charlast3 == "-S" || charlast == "(s)" || charlast1 == "- s" || charlast2 == "( s )" || charlast3 == "-s")

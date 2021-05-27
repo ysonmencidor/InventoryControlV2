@@ -16,7 +16,7 @@ namespace DataAccessLibrary
         private readonly ISqlDataAccess db;
         private readonly AppConnectionString appConnectionString;
 
-        public UserData(ISqlDataAccess db,AppConnectionString appConnectionString)
+        public UserData(ISqlDataAccess db, AppConnectionString appConnectionString)
         {
             this.db = db;
             this.appConnectionString = appConnectionString;
@@ -29,12 +29,12 @@ namespace DataAccessLibrary
             return await db.LoadData<UserModel, dynamic>(sql, new { });
         }
 
-        public async Task<List<UserModel>> GetUserByRole(string RoleName,string AccessType)
+        public async Task<List<UserModel>> GetUserByRole(string RoleName, string AccessType)
         {
             const string sql = @"SELECT UserAccount.*,Roles.* FROM UserAccount JOIN UserRoles on UserAccount.Id = UserRoles.UserId JOIN Roles on UserRoles.RoleId = Roles.RoleId
                                 WHERE Roles.RoleName = @RoleName AND AccessType = @AccessType";
 
-            return await db.LoadData<UserModel, dynamic>(sql, new { RoleName,AccessType });
+            return await db.LoadData<UserModel, dynamic>(sql, new { RoleName, AccessType });
         }
 
         public async Task<List<UserModel>> GetUserWithoutGroup()
@@ -57,46 +57,46 @@ namespace DataAccessLibrary
                 //using (var transaction = con.BeginTransaction())
                 //{
                 //}
-                  //string sql = $@"INSERT INTO [dbo].[UserAccount]
-                  //     ([Username]
-                  //     ,[Password]
-                  //     ,[Firstname]
-                  //     ,[Middlename]
-                  //     ,[Lastname])
-                  //      VALUES
-                  //     (@Username
-                  //     ,@Password
-                  //     ,@Firstname
-                  //     ,@Middlename
-                  //     ,@Lastname); 
-                  //     select @Id = @@IDENTITY
-                  //     INSERT INTO UserRoles values (@Id,@RoleId)";
+                //string sql = $@"INSERT INTO [dbo].[UserAccount]
+                //     ([Username]
+                //     ,[Password]
+                //     ,[Firstname]
+                //     ,[Middlename]
+                //     ,[Lastname])
+                //      VALUES
+                //     (@Username
+                //     ,@Password
+                //     ,@Firstname
+                //     ,@Middlename
+                //     ,@Lastname); 
+                //     select @Id = @@IDENTITY
+                //     INSERT INTO UserRoles values (@Id,@RoleId)";
 
-                  //  string test = $@"BEGIN TRANSACTION
-                  //      INSERT INTO UserAccount
-                  //             (Username,Password,Firstname,Middlename,Lastname)
-                  //              VALUES
-                  //             (@Username,@Password,@Firstname,@Middlename,@Lastname)
-                  //      DECLARE @UserId INT
-                  //      SET @UserId = SCOPE_IDENTITY() --last assigned id
-                  //      INSERT INTO UserRoles values (@UserId,@RoleId)
-                  //      COMMIT";
+                //  string test = $@"BEGIN TRANSACTION
+                //      INSERT INTO UserAccount
+                //             (Username,Password,Firstname,Middlename,Lastname)
+                //              VALUES
+                //             (@Username,@Password,@Firstname,@Middlename,@Lastname)
+                //      DECLARE @UserId INT
+                //      SET @UserId = SCOPE_IDENTITY() --last assigned id
+                //      INSERT INTO UserRoles values (@UserId,@RoleId)
+                //      COMMIT";
 
-                    var p = new DynamicParameters();
-                    p.Add("@UserId", 0, DbType.Int32, ParameterDirection.Output);
-                    p.Add("@Username", userModel.Username);
-                    p.Add("@Password", userModel.Password);
+                var p = new DynamicParameters();
+                p.Add("@UserId", 0, DbType.Int32, ParameterDirection.Output);
+                p.Add("@Username", userModel.Username);
+                p.Add("@Password", userModel.Password);
                 p.Add("@Name", userModel.Name);
                 p.Add("@AceessType", userModel.AccessType);
-
+                p.Add("@IsActive", userModel.IsActive);
                 p.Add("@RoleId", userModel.RoleId);
-                    
-                    //transaction.Commit();
 
-                    await con.ExecuteAsync("SP_SaveNewUser", p, commandType:CommandType.StoredProcedure);
-                    //await con.QueryAsync<int>(test, p, transaction: transaction); 
-                    int newID = p.Get<int>("@UserId");
-                    return newID;        
+                //transaction.Commit();
+
+                await con.ExecuteAsync("SP_SaveNewUser", p, commandType: CommandType.StoredProcedure);
+                //await con.QueryAsync<int>(test, p, transaction: transaction); 
+                int newID = p.Get<int>("@UserId");
+                return newID;
             }
 
 
@@ -120,18 +120,19 @@ namespace DataAccessLibrary
                 p.Add("@Name", userModel.Name); ;
                 p.Add("@AceessType", userModel.AccessType);
                 p.Add("@RoleId", userModel.RoleId);
+                p.Add("@IsACtive", userModel.IsActive);
 
-                int affectedRows = await con.ExecuteAsync(SpUpdate, p, commandType:CommandType.StoredProcedure);
+                int affectedRows = await con.ExecuteAsync(SpUpdate, p, commandType: CommandType.StoredProcedure);
                 return affectedRows;
             }
         }
 
         public Task<AuthenticatedUserModel> LoginUser(UserModel userModel)
         {
-                 string sql = @"select username,RoleName,UserAccount.Id,UserAccount.AccessType,UserAccount.IsPasswordDefault from UserAccount 
+            string sql = @"select username,RoleName,UserAccount.Id,UserAccount.AccessType,UserAccount.IsPasswordDefault from UserAccount 
                             join UserRoles on UserAccount.Id = UserRoles.UserId
                             join Roles on UserRoles.RoleId = Roles.RoleId 
-                            where UserAccount.Username = @Username and UserAccount.Password = @Password";
+                            where IsActive = 'True' and UserAccount.Username = @Username and UserAccount.Password = @Password";
             var model = db.LoadSingleData<AuthenticatedUserModel>(sql, new { Username = userModel.Username, Password = userModel.Password, Id = userModel.Id, AccessType = userModel.AccessType });
             return model;
         }
@@ -142,7 +143,7 @@ namespace DataAccessLibrary
             var p = new DynamicParameters();
             p.Add("@Pass", data.RepeatPassword);
             p.Add("@Default", "False");
-            p.Add("Uname", data.Username);
+            p.Add("@Uname", data.Username);
             int affectedRows = await db.SaveData(sql, p);
             return affectedRows;
         }
@@ -151,6 +152,17 @@ namespace DataAccessLibrary
         {
             string sql = @"select RoleId,RoleName from Roles";
             return db.LoadData<Roles, dynamic>(sql, new { });
+        }
+
+        public async Task<int> ResetUserPass(string Username)
+        {
+            string sql = @"UPDATE UserAccount SET Password = @Pass ,IsPasswordDefault = @Default WHERE Username = @Uname";
+            var p = new DynamicParameters();
+            p.Add("@Pass", "Defaultpassword");
+            p.Add("@Default", "True");
+            p.Add("@Uname", Username);
+            int affectedRows = await db.SaveData(sql, p);
+            return affectedRows;
         }
     }
 }

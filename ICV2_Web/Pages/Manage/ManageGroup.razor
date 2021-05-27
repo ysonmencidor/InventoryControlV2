@@ -21,56 +21,68 @@
                     </thead>
                     <tbody>
                         @if (groups != null)
-                        {                      
-                            var xg = groups.GroupBy(x => x.GroupId).Select(grp => new { grp.Key, total = grp.Count() }).ToList();
-                        
-                                  
+                        {
+                            //var xg = groups.GroupBy(x => x.se).Select(grp => new { grp.Key, total = grp.Count() }).ToList();
+
+
                             foreach (var item in groups)
                             {
 
-                                <tr>
-                                    <td>@item.Name</td>
-                                    <td>
-                                        @if (item.IsActive)
-                                        {
-                                            <em>Active</em>
-                                        }
-                                        else
-                                        {
-                                            <em class="text-muted">Inactive</em>
-                                        }
-                                    </td>
-                                    <td>
-                                        <Tooltip Text="Edit">
-                                            <button @onclick="(() => ShowGroupForm(item, true))" class="btn btn-sm btn-primary rounded-circle"><Icon Name="IconName.Pen"> Manage</Icon></button>
-                                        </Tooltip>
-                                        <Tooltip Text="Manage">
-                                            <button @onclick="(() => ShowManageForm(item.GroupId, item.Name))" class="btn btn-sm btn-success rounded-circle"><Icon Name="IconName.Server"></Icon></button>
-                                        </Tooltip>
-                                        <Tooltip Text="Add user to this group">
-                                            <button @onclick="(() => ShowUserForGroupForm(item.GroupId))" class="btn btn-info btn-sm rounded-circle"><Icon Name="IconName.UserPlus"></Icon></button>
-                                        </Tooltip>
-                                    </td>
-                                    <td>
-                                     @foreach(var counter in xg)
+                                var usercount = 0;
+                                foreach (var item2 in usersInGroups)
+                                {
+                                    if(item.GroupId == item2.GroupId)
                                     {
-                                        if(counter.Key == item.GroupId)
-                                        {
-                                             <em>@counter.total</em>
-                                        }
+                                        usercount = item2.Users;
                                     }
-                                    </td>
-  
-                                  </tr>
+                                }
+                
+                                    <tr>
+                                        <td>@item.Name</td>
+                                        <td>
+                                            @if (item.IsActive)
+                                            {
+                                                <em>Active</em>
+                                            }
+                                            else
+                                            {
+                                                <em class="text-muted">Inactive</em>
+                                            }
+                                        </td>
+                                        <td>
+                                            <Tooltip Text="Edit">
+                                                <button @onclick="(() => ShowGroupForm(item, true))" class="btn btn-sm btn-primary rounded-circle"><Icon Name="IconName.Pen"> Manage</Icon></button>
+                                            </Tooltip>
+                                            <Tooltip Text="Manage">
+                                                <button @onclick="(() => ShowManageForm(item.GroupId, item.Name))" class="btn btn-sm btn-success rounded-circle"><Icon Name="IconName.Server"></Icon></button>
+                                            </Tooltip>
+                                            <Tooltip Text="Add user to this group">
+                                                <button @onclick="(() => ShowUserForGroupForm(item.GroupId))" class="btn btn-info btn-sm rounded-circle"><Icon Name="IconName.UserPlus"></Icon></button>
+                                            </Tooltip>
+                                        </td>
+                                        <td>
+
+                                            <em>@usercount</em>
+
+                                            @*@foreach(var counter in xg)
+                            {
+                                if(counter.Key == item.GroupId)
+                                {
+                                     <em>@counter.total</em>
+                                }
+                            }*@
+                                        </td>
+
+                                    </tr>
+                                }
                             }
-                        }
                         else
-                        {
-                            <tr>
-                                <td colspan="4" class="text-center">Loading...</td>
-                            </tr>
-                        }
-                    </tbody>
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center">Loading...</td>
+                                </tr>
+                            }
+                        </tbody>
                 </table>
 
 
@@ -234,7 +246,7 @@
                                     @item.Name
                                 </TableRowCell>
                                 <TableRowCell>
-                                    
+                                    <button @onclick="(()=> RemoveUserToGrup(item))" class="btn btn-danger btn-sm rounded-circle"><Icon Name="IconName.Remove"></Icon></button>
                                 </TableRowCell>
                             </TableRow>
                               }
@@ -265,9 +277,12 @@
             private List<MenuInfo> menuList { get; set; } = new List<MenuInfo>();
             private List<AssignedMenu> assignedMenus { get; set; } = new List<AssignedMenu>();
 
+            private List<UsersInGroup> usersInGroups { get; set; } = new List<UsersInGroup>();
+
             Group model = new();
             private string title { get; set; }
             private List<Group> groups { get; set; } = new List<Group>();
+
             private async Task RemoveAssigned(AssignedMenu assignedMenu)
             {
                 var httprequest = await http.PostAsJsonAsync("api/Navigation/UnAssigMenu", assignedMenu);
@@ -313,7 +328,7 @@
             }
             private async Task AddUserToGroup()
             {
-                Console.WriteLine(MenuAccessModel.UserId);
+                //Console.WriteLine(MenuAccessModel.UserId);
                 if (MenuAccessModel.GroupId > 0 && MenuAccessModel.UserId > 0)
                 {
                     var name = users.Find(x => x.Id == MenuAccessModel.UserId).Name;
@@ -321,7 +336,6 @@
                     if(!string.IsNullOrEmpty(name)){
                         MenuAccessModel.Name = name;
                     }
-
 
                     var httpResponse = await http.PostAsJsonAsync("api/Navigation/InserUserToGroup", MenuAccessModel);
                     if (httpResponse.IsSuccessStatusCode)
@@ -335,12 +349,36 @@
                             Name = MenuAccessModel.Name,
                             UserId = MenuAccessModel.UserId
                         };
-
+                        await LoadUsersInGroup();
                         menuAccesses.Add(newModel);
 
                         users.RemoveAll(x => x.Id == newModel.UserId);
 
                         MenuAccessModel.UserId = 0;
+                        this.StateHasChanged();
+                    }
+
+                    //Console.WriteLine(SelectedUserId);
+                }
+                else
+                {
+                    await js.InvokeVoidAsync("alert", "Please select user.");
+                }
+            }
+
+            private async Task RemoveUserToGrup(MenuAccess menuAccess)
+            {
+
+                if (menuAccess.GroupId > 0 && menuAccess.UserId > 0)
+                {
+
+                    var httpResponse = await http.PostAsJsonAsync("api/Navigation/DeleteUserToGroup", menuAccess);
+                    if (httpResponse.IsSuccessStatusCode)
+                    {
+                        menuAccesses.Remove(menuAccess);
+                        users = await http.GetFromJsonAsync<List<UserModel>>("api/User/GetUserWithoutGroup");
+                        await LoadUsersInGroup();
+                        //MenuAccessModel.UserId = 0;
                         this.StateHasChanged();
                     }
 
@@ -466,6 +504,16 @@
 
             private async Task LoadData()
             {
+
                 groups = await http.GetFromJsonAsync<List<Group>>("api/Navigation/GetGroups");
+
+                await LoadUsersInGroup();
+            }
+            private async Task LoadUsersInGroup()
+            {
+                if (groups != null)
+                {
+                    usersInGroups = await http.GetFromJsonAsync<List<UsersInGroup>>("api/Navigation/CountUsersInGroup");
+                }
             }
         }

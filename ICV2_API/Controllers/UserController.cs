@@ -1,6 +1,7 @@
 ﻿using DataAccessLibrary;
 using DataAccessLibrary.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -14,6 +15,7 @@ namespace ICV2_API.Controllers
     //[Authorize(Roles = "Administrator")]
     [Route("api/[controller]")]
     [ApiController]
+    [EnableCors("AllowCors")]
     public class UserController : ControllerBase
     {
         private IUserData userData;
@@ -107,6 +109,18 @@ namespace ICV2_API.Controllers
         public async Task<UserModel> GetUserById(int UserId)
         {
             return await userData.GetUserById(UserId);
+        }
+
+        [Route("ResetUserPass")]
+        [HttpGet]
+        public async Task<IActionResult> ResetUserPass(string Username)
+        {
+            int result = await userData.ResetUserPass(Username);
+            if (result > 0)
+            {
+                return Ok(result);
+            }
+            return BadRequest();
         }
 
     }

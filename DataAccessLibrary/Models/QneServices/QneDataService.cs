@@ -93,7 +93,8 @@ namespace DataAccessLibrary.Models.QneServices
                             CONVERT(BIT, (CASE WHEN B.COMMON IS NULL OR B.COMMON = 0 THEN 0 ELSE 1 END)) AS COMMON,
                             CONVERT(BIT, (CASE WHEN B.POULTRY IS NULL OR B.POULTRY = 0 THEN 0 ELSE 1 END)) AS POULTRY
                             FROM Stocks AS A LEFT JOIN CATEGORIZED_PRODUCTS AS B
-                            ON A.StockCode = B.STOCKCODE";
+                            ON A.StockCode = B.STOCKCODE
+                            WHERE A.StockCode LIKE 'FG%'";
                 var model = await con.QueryAsync<FGMASTERFILEMODEL>(sql, commandType: CommandType.Text);
                 return model;
             }

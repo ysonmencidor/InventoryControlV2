@@ -15,5 +15,6 @@ namespace DataAccessLibrary
         Task<List<UserModel>> GetUserByRole(string RoleName, string AccessType);
         Task<List<UserModel>> GetUserWithoutGroup();
         Task<int> ChangePassword(DefaultPass data);
+        Task<int> ResetUserPass(string Username);
     }
 }

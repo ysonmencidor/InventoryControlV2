@@ -15,14 +15,13 @@ using System.Threading.Tasks;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using DataAccessLibrary.ApiSettings;
-using DataAccessLibrary.TestModel;
 using DataAccessLibrary.Models.QneServices;
 
 namespace ICV2_API
 {
     public class Startup
     {
-    //    readonly string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+        //readonly string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
         public Startup(IConfiguration configuration)
         {
@@ -36,16 +35,19 @@ namespace ICV2_API
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers();
+            
             services.AddCors(options =>
             {
-                options.AddDefaultPolicy(builder =>
+                options.AddPolicy("AllowCors", builder =>
                 {
                     builder.AllowAnyOrigin();
                     builder.AllowAnyHeader();
                     builder.AllowAnyMethod();
                 });
             });
+
+            services.AddControllers();
+  
 
             services.AddAuthentication(options =>
             {
@@ -73,7 +75,6 @@ namespace ICV2_API
             services.AddTransient<ISqlDataAccess, SqlDataAccess>();
             services.AddTransient<IUserData, UserData>();
             services.AddSingleton<MenuService>();
-            services.AddTransient<TestService>();
             services.AddTransient<QneDataService>();
             services.AddTransient<QneReportService>();
 
@@ -91,7 +92,7 @@ namespace ICV2_API
 
             app.UseRouting();
 
-            app.UseCors();
+            app.UseCors("AllowCors");
 
             app.UseAuthentication();
             app.UseAuthorization();

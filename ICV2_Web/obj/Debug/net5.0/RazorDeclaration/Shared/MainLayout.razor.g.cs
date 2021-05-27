@@ -195,7 +195,7 @@ using NEvaldas.Blazor.Select2;
         }
         #pragma warning restore 1998
 #nullable restore
-#line 216 "F:\Blazor\InventoryControlV2\ICV2_Web\Shared\MainLayout.razor"
+#line 232 "F:\Blazor\InventoryControlV2\ICV2_Web\Shared\MainLayout.razor"
       
 
     private IEnumerable<MenuInfo> menuList;
@@ -216,9 +216,12 @@ using NEvaldas.Blazor.Select2;
     private async Task LoadMenu(int UserId)
     {
         menuList = await http.GetFromJsonAsync<IEnumerable<MenuInfo>>("api/Navigation/GetUserGroupedMenu?UserId=" + UserId);
+    }
+    private async Task LoadMenuCustom(int UserId)
+    {
+        menuList = await http.GetFromJsonAsync<IEnumerable<MenuInfo>>("api/Navigation/GetAssignedMenuCustomById?UserId=" + UserId);
 
     }
-
     private async Task ChangePass()
     {
         var httpRequest = await http.PostAsJsonAsync("api/User/changePFromDefault", DefaultPassmodel);
@@ -236,7 +239,7 @@ using NEvaldas.Blazor.Select2;
     public Task<AuthenticationState> authenticationState { get; set; }
     private string Username = string.Empty;
     public bool IsPasswordDefault;
-
+    private string Access_Type;
     protected override async Task OnParametersSetAsync()
     {
         var user = (await authenticationState).User;
@@ -257,7 +260,21 @@ using NEvaldas.Blazor.Select2;
                 }
                 else
                 {
-                    await LoadMenu(u_Id);
+
+                    Access_Type = user.FindFirst("AccessType").Value;
+
+                    if (!string.IsNullOrEmpty(Access_Type) == true)
+                    {
+                        switch (Access_Type)
+                        {
+                            case "Grouped":
+                                await LoadMenu(u_Id);
+                                break;
+                            case "Custom":
+                                await LoadMenuCustom(u_Id);
+                                break;
+                        }
+                    }
                 }
             }
             else
@@ -265,6 +282,7 @@ using NEvaldas.Blazor.Select2;
                 DefaultPassmodel.Username = Username;
             }
         }
+
     }
 
     void ToggleSidebar()
@@ -279,6 +297,7 @@ using NEvaldas.Blazor.Select2;
         NavigationManager.NavigateTo("/login");
     }
 
+    
 
 #line default
 #line hidden

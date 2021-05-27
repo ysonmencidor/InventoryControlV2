@@ -1,6 +1,7 @@
 ﻿using DataAccessLibrary.Models.QneModels;
 using DataAccessLibrary.Models.QneReportFilter;
 using DataAccessLibrary.Models.QneServices;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -10,6 +11,7 @@ using System.Threading.Tasks;
 
 namespace ICV2_API.Controllers
 {
+    [EnableCors("AllowCors")]
     [Route("api/[controller]")]
     [ApiController]
     public class QneController : ControllerBase

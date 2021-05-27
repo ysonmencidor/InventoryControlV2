@@ -8,99 +8,107 @@
 @inject AppState AppState
 @inject HttpClient http
 @inject IJSRuntime js
+@if (AppState.CompanyReady())
+{
 
-<div class="card shadow">
-    @if (formModel != null)
-    {
-    <EditForm Model="formModel" OnSubmit="GenerateReport">
-        <div class="card-header bg-secondary text-white">
-            Sales Analysis
-        </div>
-        <div class="card-body">
-            <div class="form-group row">
-                <label for="datefrom" class="col-sm-2 col-form-label">Date from</label>
-                <div class="col-sm-10">
-                    <InputDate id="datefrom" @bind-Value="formModel.DateFrom" class="form-control" />
+    <div class="card shadow">
+        @if (formModel != null)
+        {
+            <EditForm Model="formModel" OnSubmit="GenerateReport">
+                <div class="card-header bg-secondary text-white">
+                    Sales Analysis
                 </div>
-            </div>
-            <div class="form-group row">
-                <label for="dateTo" class="col-sm-2 col-form-label">Date to</label>
-                <div class="col-sm-10">
-                    <InputDate id="dateTo" @bind-Value="formModel.DateTo" class="form-control" />
+                <div class="card-body">
+                    <div class="form-group row">
+                        <label for="datefrom" class="col-sm-2 col-form-label">Date from</label>
+                        <div class="col-sm-10">
+                            <InputDate id="datefrom" @bind-Value="formModel.DateFrom" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="dateTo" class="col-sm-2 col-form-label">Date to</label>
+                        <div class="col-sm-10">
+                            <InputDate id="dateTo" @bind-Value="formModel.DateTo" class="form-control" />
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
 
-        <div class="card-header bg-secondary text-center text-white">
-            Filter
-        </div>
-        <div class="card-body">
+                <div class="card-header bg-secondary text-center text-white">
+                    Filter
+                </div>
+                <div class="card-body">
 
-            <div class="form-group row">
-                <label for="salesperson" class="col-sm-2 col-form-label">Sales Rep.</label>
-                <div class="col-sm-4">
-                    <InputSelect id="salesperson" @bind-Value="formModel.SalesPersonCode" class="form-control">
-                        <option value="%%">All</option>
-                        @if (salesPersons is not null)
-                            {
-                            @foreach (var item in salesPersons)
-                                {
-                                <option value="@item.StaffCode">@item.StaffCode</option>
-                                }
-                            }
-                    </InputSelect>
+                    <div class="form-group row">
+                        <label for="salesperson" class="col-sm-2 col-form-label">Sales Rep.</label>
+                        <div class="col-sm-4">
+                            <InputSelect id="salesperson" @bind-Value="formModel.SalesPersonCode" class="form-control">
+                                <option value="%%">All</option>
+                                @if (salesPersons is not null)
+                                        {
+                                    @foreach (var item in salesPersons)
+                                            {
+                                        <option value="@item.StaffCode">@item.StaffCode</option>
+                                            }
+                                        }
+                            </InputSelect>
+                        </div>
+                        <label for="debtor" class="col-sm-2 col-form-label">Customer</label>
+                        <div class="col-sm-4">
+                            <InputSelect id="debtor" @bind-Value="formModel.DebtorCode" class="form-control">
+                                <option value="%%">All</option>
+                                @if (debtors is not null)
+                                        {
+                                    @foreach (var item in debtors)
+                                            {
+                                        <option value="@item.CompanyCode">@item.CompanyName</option>
+                                            }
+                                        }
+                            </InputSelect>
+                        </div>
+                    </div>
                 </div>
-                <label for="debtor" class="col-sm-2 col-form-label">Customer</label>
-                <div class="col-sm-4">
-                    <InputSelect id="debtor" @bind-Value="formModel.DebtorCode" class="form-control">
-                        <option value="%%">All</option>
-                        @if (debtors is not null)
-                            {
-                            @foreach (var item in debtors)
-                                {
-                                <option value="@item.CompanyCode">@item.CompanyName</option>
-                                }
-                            }
-                    </InputSelect>
+                <div class="card-header bg-secondary text-center text-white">
+                    Options
                 </div>
-            </div>
-        </div>
-        <div class="card-header bg-secondary text-center text-white">
-            Options
-        </div>
-        <div class="card-body ">
-            <div class="d-flex justify-content-center">
-                <div class="form-check form-check-inline">
-                    <InputCheckbox @bind-Value="formModel.IncludeGST" class="form-check-input" id="gst"></InputCheckbox>
-                    <label class="form-check-label" for="gst">Include GST</label>
+                <div class="card-body ">
+                    <div class="d-flex justify-content-center">
+                        <div class="form-check form-check-inline">
+                            <InputCheckbox @bind-Value="formModel.IncludeGST" class="form-check-input" id="gst"></InputCheckbox>
+                            <label class="form-check-label" for="gst">Include GST</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <InputCheckbox @bind-Value="formModel.IncludeDN" class="form-check-input" id="dn"></InputCheckbox>
+                            <label class="form-check-label" for="dn">Include DN</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <InputCheckbox @bind-Value="formModel.includeCN" class="form-check-input" id="cn"></InputCheckbox>
+                            <label class="form-check-label" for="cn">Include CN</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <InputCheckbox @bind-Value="formModel.includeCS" class="form-check-input" id="cs"></InputCheckbox>
+                            <label class="form-check-label" for="gs">Include CS</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <InputCheckbox @bind-Value="formModel.stockControlOnly" class="form-check-input" id="sco"></InputCheckbox>
+                            <label class="form-check-label" for="sco">Stock Control Only</label>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-check form-check-inline">
-                    <InputCheckbox @bind-Value="formModel.IncludeDN" class="form-check-input" id="dn"></InputCheckbox>
-                    <label class="form-check-label" for="dn">Include DN</label>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-outline-info">Generate Report</button>
+                    </div>
                 </div>
-                <div class="form-check form-check-inline">
-                    <InputCheckbox @bind-Value="formModel.includeCN" class="form-check-input" id="cn"></InputCheckbox>
-                    <label class="form-check-label" for="cn">Include CN</label>
-                </div>
-                <div class="form-check form-check-inline">
-                    <InputCheckbox @bind-Value="formModel.includeCS" class="form-check-input" id="cs"></InputCheckbox>
-                    <label class="form-check-label" for="gs">Include CS</label>
-                </div>
-                <div class="form-check form-check-inline">
-                    <InputCheckbox @bind-Value="formModel.stockControlOnly" class="form-check-input" id="sco"></InputCheckbox>
-                    <label class="form-check-label" for="sco">Stock Control Only</label>
-                </div>
-            </div>
-        </div>
-        <div class="card-footer">
-            <div class="d-flex justify-content-end">
-                <button type="submit" class="btn btn-outline-info">Generate Report</button>
-            </div>
-        </div>
-    </EditForm>
-    }
-</div>
-
+            </EditForm>
+        }
+    </div>
+}
+else
+{
+    <div class="col-6">
+        <h4 class="alert alert-info text-center shadow">SELECT COMPANY FIRST</h4>
+    </div>
+}
 @code {
 
     SALESANALYSISFILTER formModel = new();

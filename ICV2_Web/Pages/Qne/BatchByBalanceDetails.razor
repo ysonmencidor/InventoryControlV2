@@ -10,6 +10,8 @@
 @inject IJSRuntime js
 
 
+@if(AppState.CompanyReady())
+{
 <div class="card shadow">
     @if (formModel != null)
     {
@@ -36,12 +38,12 @@
                         <InputSelect id="stockgRoup" @bind-Value="formModel.StockGroup" class="form-control">
                             <option value="%%">All</option>
                             @if (StockGroup is not null)
-                                {
+                            {
                                 @foreach (var item in StockGroup)
-                                    {
+                                {
                                     <option value="@item.GroupCode">@item.GroupCode</option>
-                                    }
                                 }
+                            }
                         </InputSelect>
                     </div>
                 </div>
@@ -51,12 +53,12 @@
                         <InputSelect id="stockLoc" @bind-Value="formModel.Location" class="form-control">
                             <option value="%%">All</option>
                             @if (Location is not null)
-                                {
+                            {
                                 @foreach (var item in Location)
-                                    {
+                                {
                                     <option value="@item.LocationCode">@item.LocationCode</option>
-                                    }
                                 }
+                            }
                         </InputSelect>
                     </div>
                 </div>
@@ -75,10 +77,14 @@
         </EditForm>
     }
 </div>
-@*@if (Result.Count > 0)
-    {*@
 
-
+}
+else
+{
+<div class="col-6">
+    <h4 class="alert alert-info text-center shadow">SELECT COMPANY FIRST</h4>
+</div>
+}
 
 
 @code {

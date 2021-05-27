@@ -1,7 +1,9 @@
 ﻿@page "/users"
 @inject HttpClient http
+@using System.Text
 @using System.Text.Json
 @attribute [Authorize(Roles = "Administrator")]
+@inject IJSRuntime js
 
 @if (users is null)
 {
@@ -33,7 +35,7 @@ else
                                     User type
                                 </th>
                                 <th>
-                                    Status
+                                    IsActive
                                 </th>
                                 <th>Access Type</th>
                                 <th>Action</th>
@@ -51,14 +53,28 @@ else
 
                                     <td>@item.RoleName</td>
 
-                                    <td>@item.IsActive</td>
                                     <td>
-                                    @if (item.RoleName == "User") { 
-                                        @item.AccessType
-                                    }</td>
+                                        @if (item.IsActive)
+                                        {
+                                            <em>Active</em>
+                                        }
+                                        else
+                                        {
+                                            <em>Inactive</em>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (item.RoleName == "User")
+                                        {
+                                            @item.AccessType
+                                        }
+                                    </td>
                                     <td>
                                         <Tooltip Text="Edit">
                                             <button class="btn btn-primary btn-sm rounded-circle" @onclick="@(() => AddEditUser(item,true))"><Icon Name="IconName.Pen"></Icon></button>
+                                        </Tooltip>
+                                        <Tooltip Text="Reset password">
+                                            <Button @onclick="(()=> ResetPass(item))" class="btn btn-warning btn-sm rounded-circle"><Icon Name="IconName.Undo"></Icon></Button>
                                         </Tooltip>
                                     </td>
                                 </tr>
@@ -73,14 +89,14 @@ else
             </div>
         </div>
     </div>
-    }
+}
 
 @if (user != null)
 {
     <Modal @ref="modalRef" Closed="HideModal">
         <ModalContent Centered="true">
             <EditForm Model="user" autocomplete="false" OnValidSubmit="SubmitUser">
- 
+
                 <ModalHeader>
                     <ModalTitle>@title</ModalTitle>
                     <CloseButton Clicked="@HideModal" />
@@ -123,6 +139,12 @@ else
                         </div>
                     }
 
+                    <div class="form-check">
+                        <InputCheckbox @bind-Value="user.IsActive" id="act" class="form-check-input"></InputCheckbox>
+                        <label class="form-check-label" for="act">
+                            Active
+                        </label>
+                    </div>
                 </ModalBody>
                 <ModalFooter>
                     <Button Color="Color.Secondary" Size="Size.Small" Clicked="@HideModal">Close</Button>
@@ -181,11 +203,32 @@ else
         }
     }
 
+
     public class UpdateResult
     {
         public UserModel data { get; set; }
         public int count { get; set; }
         public bool IsUpdate { get; set; }
+    }
+
+    async Task ResetPass(UserModel userdata)
+    {
+        bool confirmed = await js.InvokeAsync<bool>("confirm", $"Are you sure you want to reset {userdata.Username}'s password?");
+        if (confirmed)
+        {
+            var uname = new string(userdata.Username);
+
+            var json = JsonSerializer.Serialize(uname);
+            var data = new StringContent(json, Encoding.UTF8, "application/json");
+
+
+            var httprequest = await http.GetAsync($"api/User/ResetUserPass?Username={userdata.Username}");
+
+            if (httprequest.IsSuccessStatusCode)
+            {
+                await js.InvokeVoidAsync("alert", "Password reset successfully!");
+            }
+        }
     }
 
     private async Task LoadUser()

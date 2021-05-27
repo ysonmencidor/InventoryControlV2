@@ -8,75 +8,84 @@
 @inject AppState AppState
 @inject HttpClient http
 @inject IJSRuntime js
+@if (AppState.CompanyReady())
+{
 
-<div class="card shadow">
-    <div class="card-header bg-secondary text-white ">
-        Stock Issue Reports
-    </div>
-    <div class="card-body">
-        <div class="form-group row">
-            <label for="si" class="col-sm-4 col-md-2 col-lg-2 col-form-label">ISSUE CODE:</label>
-            <div class="col-sm-8 col-md-3 col-lg-3">
-                <Select TValue="Guid" SelectedValue="@StockIssueId" SelectedValueChanged="@OnSelectedValueChanged">
-                    @if (stockIssues != null)
-                    {
-                        <SelectItem Value="Guid.Empty">- SELECT -</SelectItem>
-                        foreach (var item in stockIssues)
+    <div class="card shadow">
+        <div class="card-header bg-secondary text-white ">
+            Stock Issue Reports
+        </div>
+        <div class="card-body">
+            <div class="form-group row">
+                <label for="si" class="col-sm-4 col-md-2 col-lg-2 col-form-label">ISSUE CODE:</label>
+                <div class="col-sm-8 col-md-3 col-lg-3">
+                    <Select TValue="Guid" SelectedValue="@StockIssueId" SelectedValueChanged="@OnSelectedValueChanged">
+                        @if (stockIssues != null)
                         {
-                            <SelectItem Value="item.Id">@item.StockOutCode</SelectItem>
+                            <SelectItem Value="Guid.Empty">- SELECT -</SelectItem>
+                            foreach (var item in stockIssues)
+                            {
+                                <SelectItem Value="item.Id">@item.StockOutCode</SelectItem>
+                            }
+                        }
+                        else
+                        {
+                            <SelectItem Value="Guid.Empty">- SELECT COMPANY FIRST -</SelectItem>
+                        }
+                    </Select>
+                </div>
+            </div>
+
+            <table class="table table-striped table-hover">
+                <thead class="bg-info text-white">
+                    <tr>
+                        <th>STOCK CODE</th>
+                        <th>DESCRIPTION</th>
+                        <th>BATCHNO</th>
+                        <th>QTY</th>
+                        <th>UOM</th>
+                        <th>U.COST</th>
+                        <th>AMOUNT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (sTOCKISSUEDETAILSRESULTs is not null)
+                    {
+                        foreach (var item in sTOCKISSUEDETAILSRESULTs)
+                        {
+                            <tr>
+                                <td>@item.StockCode</td>
+                                <td>@item.StockName</td>
+                                <td>@item.BatchNo</td>
+                                <td>@item.Qty</td>
+                                <td>@item.UOMCode</td>
+                                <td>@item.Price</td>
+                                <td>@item.Amount</td>
+                            </tr>
                         }
                     }
-                    else
-                    {
-                        <SelectItem Value="Guid.Empty">- SELECT COMPANY FIRST -</SelectItem>
-                    }
-                </Select>
-</div>
+                </tbody>
+            </table>
+
         </div>
-
-        <table class="table table-striped table-hover">
-            <thead class="bg-info text-white">
-                <tr>
-                    <th>STOCK CODE</th>
-                    <th>DESCRIPTION</th>
-                    <th>BATCHNO</th>
-                    <th>QTY</th>
-                    <th>UOM</th>
-                    <th>U.COST</th>
-                    <th>AMOUNT</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (sTOCKISSUEDETAILSRESULTs is not null)
-                {
-                    foreach (var item in sTOCKISSUEDETAILSRESULTs)
-                    {
-                        <tr>
-                            <td>@item.StockCode</td>
-                            <td>@item.StockName</td>
-                            <td>@item.BatchNo</td>
-                            <td>@item.Qty</td>
-                            <td>@item.UOMCode</td>
-                            <td>@item.Price</td>
-                            <td>@item.Amount</td>
-                        </tr>
-                    }
-                }
-            </tbody>
-        </table>
-
-    </div>
-    <div class="card-footer">
-        <div class="d-flex justify-content-end">
+        <div class="card-footer">
             <div class="d-flex justify-content-end">
-                @if (StockIssueId != Guid.Empty && stockIssues.Count > 0)
-                {
-                    <button type="submit" @onclick="Download" class="btn btn-outline-info btn-sm">DOWNLOAD <Icon Name="IconName.Download"></Icon></button>
-                }
+                <div class="d-flex justify-content-end">
+                    @if (StockIssueId != Guid.Empty && stockIssues.Count > 0)
+                    {
+                        <button type="submit" @onclick="Download" class="btn btn-outline-info btn-sm">DOWNLOAD <Icon Name="IconName.Download"></Icon></button>
+                    }
+                </div>
             </div>
         </div>
     </div>
-</div>
+}
+else
+{
+    <div class="col-6">
+        <h4 class="alert alert-info text-center shadow">SELECT COMPANY FIRST</h4>
+    </div>
+}
 @code {
 
     private List<StockIssue> stockIssues { get; set; }
@@ -94,7 +103,7 @@
     private async Task OnSelectedValueChanged(Guid value)
     {
         StockIssueId = value;
-        STOCKISSUEFILTER filter = new STOCKISSUEFILTER { CompanyCode = AppState.selectedCompanyCode,StockIssueId = this.StockIssueId };
+        STOCKISSUEFILTER filter = new STOCKISSUEFILTER { CompanyCode = AppState.selectedCompanyCode, StockIssueId = this.StockIssueId };
         var httprequest = await http.PostAsJsonAsync("api/Report/GenerateStockIssueDetail", filter);
         if (httprequest.IsSuccessStatusCode)
         {

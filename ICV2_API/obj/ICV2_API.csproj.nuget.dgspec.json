@@ -120,6 +120,10 @@
               "target": "Package",
               "version": "[3.1.13, )"
             },
+            "Microsoft.AspNetCore.Cors": {
+              "target": "Package",
+              "version": "[2.2.0, )"
+            },
             "System.IdentityModel.Tokens.Jwt": {
               "target": "Package",
               "version": "[6.9.0, )"

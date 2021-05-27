@@ -1,5 +1,6 @@
 ﻿using DataAccessLibrary;
 using DataAccessLibrary.Models;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -14,6 +15,7 @@ using System.Threading.Tasks;
 
 namespace ICV2_API.Controllers
 {
+    [EnableCors("AllowCors")]
     public class TokenController : Controller
     {
         private readonly IConfiguration _config;

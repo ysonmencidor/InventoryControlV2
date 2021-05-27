@@ -21,7 +21,10 @@ namespace ICV2_API
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     //webBuilder.UseSetting("https_port", "43119");
-                    webBuilder.UseStartup<Startup>();
+                    webBuilder
+                    //.UseKestrel()
+                    //.UseIISIntegration()
+                    .UseStartup<Startup>();
                 });
     }
 }

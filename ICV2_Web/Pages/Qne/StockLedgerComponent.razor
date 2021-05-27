@@ -8,125 +8,131 @@
 @inject AppState AppState
 @inject HttpClient http
 @inject IJSRuntime js
+@if (AppState.CompanyReady())
+{
 
-
-<div class="card shadow">
-    @if (formModel != null)
-    {
-        <EditForm Model="formModel" OnSubmit="GenerateReport">
-            <div class="card-header bg-secondary text-white">
-                Stock Ledger
-            </div>
-            <div class="card-body">
-                <div class="form-group row">
-                    <label for="datefrom" class="col-sm-2 col-form-label">Date from</label>
-                    <div class="col-sm-10">
-                        <InputDate id="datefrom" @bind-Value="formModel.DateFrom" class="form-control" />
+    <div class="card shadow">
+        @if (formModel != null)
+        {
+            <EditForm Model="formModel" OnSubmit="GenerateReport">
+                <div class="card-header bg-secondary text-white">
+                    Stock Ledger
+                </div>
+                <div class="card-body">
+                    <div class="form-group row">
+                        <label for="datefrom" class="col-sm-2 col-form-label">Date from</label>
+                        <div class="col-sm-10">
+                            <InputDate id="datefrom" @bind-Value="formModel.DateFrom" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="dateTo" class="col-sm-2 col-form-label">Date to</label>
+                        <div class="col-sm-10">
+                            <InputDate id="dateTo" @bind-Value="formModel.DateTo" class="form-control" />
+                        </div>
                     </div>
                 </div>
-                <div class="form-group row">
-                    <label for="dateTo" class="col-sm-2 col-form-label">Date to</label>
-                    <div class="col-sm-10">
-                        <InputDate id="dateTo" @bind-Value="formModel.DateTo" class="form-control" />
-                    </div>
-                </div>
-            </div>
 
-            <div class="card-header bg-secondary text-center text-white">
-                Filter
-            </div>
-            <div class="card-body">
-                <div class="form-group row">
-                    <label for="salesperson" class="col-sm-2 col-form-label">Stock Code from</label>
-                    <div class="col-sm-4">
-                        <InputSelect id="stcode" @oninput="StCodeOnchange" @bind-Value="formModel.StockCodes" class="form-control">
-  
+                <div class="card-header bg-secondary text-center text-white">
+                    Filter
+                </div>
+                <div class="card-body">
+                    <div class="form-group row">
+                        <label for="salesperson" class="col-sm-2 col-form-label">Stock Code from</label>
+                        <div class="col-sm-4">
+                            <InputSelect id="stcode" @oninput="StCodeOnchange" @bind-Value="formModel.StockCodes" class="form-control">
+
                                 @if (Stocks is not null)
-                                {
+                                        {
                                     <option value="">All</option>
-                                     @foreach (var item in Stocks)
-                                    {
-                                    <option value="@item.StockCode">@item.StockCode</option>
-                                    }
-                                }
-                        </InputSelect>
-                    </div>
-                    <label for="debtor" class="col-sm-2 col-form-label">Batch #</label>
-                    <div class="col-sm-4">
-                        <InputSelect id="debtor" @bind-Value="formModel.BatchId" class="form-control">
+                                    @foreach (var item in Stocks)
+                                            {
+                                        <option value="@item.StockCode">@item.StockCode</option>
+                                            }
+                                        }
+                            </InputSelect>
+                        </div>
+                        <label for="debtor" class="col-sm-2 col-form-label">Batch #</label>
+                        <div class="col-sm-4">
+                            <InputSelect id="debtor" @bind-Value="formModel.BatchId" class="form-control">
                                 @if (batchnumbers is not null)
-                                {
-                                   <option value="%%">All</option>
-                                     @foreach (var item in batchnumbers)
-                                    {
-                                    <option value="@item.Id">@item.BatchNo</option>
-                                    }
-                                }
-                                else
-                                {
+                                        {
+                                    <option value="%%">All</option>
+                                    @foreach (var item in batchnumbers)
+                                            {
+                                        <option value="@item.Id">@item.BatchNo</option>
+                                            }
+                                        }
+                                        else
+                                        {
+                                    <option value="%%">All</option>
+                                        }
+                            </InputSelect>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="stockgRoup" class="col-sm-2 col-form-label">Stockgroup</label>
+                        <div class="col-sm-4">
+                            <InputSelect id="stockgRoup" @bind-Value="formModel.StockGroup" class="form-control">
                                 <option value="%%">All</option>
-                                }
-                        </InputSelect>
+                                @if (StockGroup is not null)
+                                        {
+                                    @foreach (var item in StockGroup)
+                                            {
+                                        <option value="@item.GroupCode">@item.GroupCode</option>
+                                            }
+                                        }
+                            </InputSelect>
+                        </div>
+                        <label for="stockLoc" class="col-sm-2 col-form-label">Location</label>
+                        <div class="col-sm-4">
+                            <InputSelect id="stockLoc" @bind-Value="formModel.LocationCode" class="form-control">
+                                <option value="--ALL--">All</option>
+                                <option value="--NONE--">None</option>
+                                @if (Location is not null)
+                                        {
+                                    @foreach (var item in Location)
+                                            {
+                                        <option value="@item.LocationCode">@item.LocationCode</option>
+                                            }
+                                        }
+                            </InputSelect>
+                        </div>
                     </div>
                 </div>
-                <div class="form-group row">
-                    <label for="stockgRoup" class="col-sm-2 col-form-label">Stockgroup</label>
-                    <div class="col-sm-4">
-                        <InputSelect id="stockgRoup" @bind-Value="formModel.StockGroup" class="form-control">
-                            <option value="%%">All</option>
-                            @if (StockGroup is not null)
-                                {
-                                @foreach (var item in StockGroup)
-                                    {
-                                    <option value="@item.GroupCode">@item.GroupCode</option>
-                                    }
-                                }
-                        </InputSelect>
-                    </div>
-                    <label for="stockLoc" class="col-sm-2 col-form-label">Location</label>
-                    <div class="col-sm-4">
-                        <InputSelect id="stockLoc" @bind-Value="formModel.LocationCode" class="form-control">
-                            <option value="--ALL--">All</option>
-                            <option value="--NONE--">None</option>
-                            @if (Location is not null)
-                                {
-                                @foreach (var item in Location)
-                                    {
-                                    <option value="@item.LocationCode">@item.LocationCode</option>
-                                    }
-                                }
-                        </InputSelect>
+                <div class="card-header bg-secondary text-center text-white">
+                    Options
+                </div>
+                <div class="card-body ">
+                    <div class="d-flex justify-content-center">
+                        <div class="form-check form-check-inline">
+                            <InputCheckbox @bind-Value="formModel.IncludeZero" class="form-check-input" id="zero"></InputCheckbox>
+                            <label class="form-check-label" for="zero">Include Zero</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <InputCheckbox @bind-Value="formModel.IncludeInactive" class="form-check-input" id="inac"></InputCheckbox>
+                            <label class="form-check-label" for="inac">Include Inactive</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <InputCheckbox @bind-Value="formModel.IncludeStockTransfer" class="form-check-input" id="st"></InputCheckbox>
+                            <label class="form-check-label" for="st">Include Stock Transfer</label>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="card-header bg-secondary text-center text-white">
-                Options
-            </div>
-            <div class="card-body ">
-                <div class="d-flex justify-content-center">
-                    <div class="form-check form-check-inline">
-                        <InputCheckbox @bind-Value="formModel.IncludeZero" class="form-check-input" id="zero"></InputCheckbox>
-                        <label class="form-check-label" for="zero">Include Zero</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <InputCheckbox @bind-Value="formModel.IncludeInactive" class="form-check-input" id="inac"></InputCheckbox>
-                        <label class="form-check-label" for="inac">Include Inactive</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <InputCheckbox @bind-Value="formModel.IncludeStockTransfer" class="form-check-input" id="st"></InputCheckbox>
-                        <label class="form-check-label" for="st">Include Stock Transfer</label>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-outline-info">Generate Report</button>
                     </div>
                 </div>
-            </div>
-            <div class="card-footer">
-                <div class="d-flex justify-content-end">
-                    <button type="submit" class="btn btn-outline-info">Generate Report</button>
-                </div>
-            </div>
-        </EditForm>
-    }
+            </EditForm>
+        }
+    </div>
+}
+ else {
+<div class="col-6">
+    <h4 class="alert alert-info text-center shadow">SELECT COMPANY FIRST</h4>
 </div>
-
+    }
 @code {
 
 
@@ -140,7 +146,7 @@
 
     private async Task StCodeOnchange(ChangeEventArgs e)
     {
-        if(e.Value.ToString() != string.Empty)
+        if (e.Value.ToString() != string.Empty)
         {
             var stockId = Stocks.First(x => x.StockCode == e.Value.ToString()).Id;
 

@@ -25,6 +25,24 @@ namespace DataAccessLibrary
             return await db.LoadData<MenuInfo, dynamic>(query, new { });
         }
 
+        public async Task<IEnumerable<MenuInfo>> GetMenuCustomByManageUserId(int UserId)
+        {
+            string query = @"SELECT * FROM Menu WHERE ParentMenuId > 0 AND  MenuId NOT IN(SELECT MenuId from CustomAccess WHERE UserId = @UserId)";
+            return await db.LoadData<MenuInfo, dynamic>(query, new { UserId });
+        }
+
+        public async Task<IEnumerable<MenuInfo>> GetAssignedMenuCustom(int UserId)
+        {
+            string query = @"SELECT * FROM Menu WHERE MenuId IN(SELECT MenuId from CustomAccess WHERE UserId = @UserId)";
+            return await db.LoadData<MenuInfo, dynamic>(query, new { UserId });
+        }
+
+        public async Task<IEnumerable<CustomAccess>> GetMenuCustomByUserId(int UserId)
+        {
+            string query = @"SELECT * from CustomAccess WHERE UserId = @UserId";
+            return await db.LoadData<CustomAccess, dynamic>(query, new { UserId });
+        }
+
         public async Task<IEnumerable<MenuInfo>> GetMenuData(int Id)
         {
             string query = @"SELECT A.* FROM Menu AS A
@@ -121,7 +139,14 @@ namespace DataAccessLibrary
             return await db.LoadData<AssignedMenu, dynamic>(query, new { GroupId });
         }
 
-        public async Task<IEnumerable<MenuAccess>> GetUsersOnGroup(int GroupId)
+        public async Task<IEnumerable<UsersInGroup>> CountUsersInGroup()
+        {
+            string query = @"SELECT GroupId,COUNT(DISTINCT UserId) AS Users
+                            FROM MenuAccess 
+                            GROUP BY GroupId";
+            return await db.LoadData<UsersInGroup, dynamic>(query, new { });
+        }
+       public async Task<IEnumerable<MenuAccess>> GetUsersOnGroup(int GroupId)
         {
             string query = @"SELECT A.*,B.Name FROM MenuAccess AS A
                             LEFT JOIN UserAccount AS B
@@ -135,5 +160,24 @@ namespace DataAccessLibrary
             string query = @"INSERT INTO MenuAccess OUTPUT inserted.MenuAccessId VALUES (@GroupId,@UserId)";
             return await db.SaveDataReturnId(query, new { menuAccess.GroupId, menuAccess.UserId });
         }
+
+        public async Task<int> DeleteUserToGroup(MenuAccess menuAccess)
+        {
+            string query = @"DELETE FROM MenuAccess WHERE MenuAccessId = @MenuAccessId";
+            return await db.SaveData(query, new { menuAccess.MenuAccessId });
+        }
+
+        public async Task<int> AssignedCustomMenu(CustomAccess customAccess)
+        {
+            string query = @"INSERT INTO CustomAccess OUTPUT inserted.CustomId VALUES (@UserId,@MenuId)";
+            return await db.SaveDataReturnId(query, new { customAccess.UserId , customAccess.MenuId });
+        }
+
+        public async Task<int> RemoveAssignedCustom(CustomAccess customAccess)
+        {
+            string query = @"DELETE FROM CustomAccess WHERE CustomId = @CustomId";
+            return await db.SaveData(query, new { customAccess.CustomId });
+        }
+       
     }
 }

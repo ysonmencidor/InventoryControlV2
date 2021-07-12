@@ -96,26 +96,6 @@
           "lib/net5.0/Blazorise.Icons.FontAwesome.dll": {}
         }
       },
-      "Blazorise.Sidebar/0.9.3.4": {
-        "type": "package",
-        "dependencies": {
-          "Blazorise": "0.9.3.4",
-          "Microsoft.AspNetCore.Components": "5.0.0",
-          "Microsoft.AspNetCore.Components.Web": "5.0.0"
-        },
-        "compile": {
-          "lib/net5.0/Blazorise.Sidebar.dll": {}
-        },
-        "runtime": {
-          "lib/net5.0/Blazorise.Sidebar.dll": {}
-        },
-        "build": {
-          "buildTransitive/Blazorise.Sidebar.props": {}
-        },
-        "buildMultiTargeting": {
-          "buildMultiTargeting/Blazorise.Sidebar.props": {}
-        }
-      },
       "ClosedXML/0.95.4": {
         "type": "package",
         "dependencies": {
@@ -2020,26 +2000,6 @@
           "lib/net5.0/Blazorise.Icons.FontAwesome.dll": {}
         }
       },
-      "Blazorise.Sidebar/0.9.3.4": {
-        "type": "package",
-        "dependencies": {
-          "Blazorise": "0.9.3.4",
-          "Microsoft.AspNetCore.Components": "5.0.0",
-          "Microsoft.AspNetCore.Components.Web": "5.0.0"
-        },
-        "compile": {
-          "lib/net5.0/Blazorise.Sidebar.dll": {}
-        },
-        "runtime": {
-          "lib/net5.0/Blazorise.Sidebar.dll": {}
-        },
-        "build": {
-          "buildTransitive/Blazorise.Sidebar.props": {}
-        },
-        "buildMultiTargeting": {
-          "buildMultiTargeting/Blazorise.Sidebar.props": {}
-        }
-      },
       "ClosedXML/0.95.4": {
         "type": "package",
         "dependencies": {
@@ -3920,26 +3880,6 @@
         "blazorise.icons.fontawesome.0.9.3.4.nupkg.sha512",
         "blazorise.icons.fontawesome.nuspec",
         "lib/net5.0/Blazorise.Icons.FontAwesome.dll"
-      ]
-    },
-    "Blazorise.Sidebar/0.9.3.4": {
-      "sha512": "Vci1MBusTdH78VBxdZRuvL0FzILsFNu+BweT7gUk2tK2JmiBKgGFeyd53QQZv7M0Bj++LIDFwkgsbnrm4bEYOQ==",
-      "type": "package",
-      "path": "blazorise.sidebar/0.9.3.4",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "Blazorise.png",
-        "LICENSE.md",
-        "blazorise.sidebar.0.9.3.4.nupkg.sha512",
-        "blazorise.sidebar.nuspec",
-        "build/Blazorise.Sidebar.props",
-        "build/Microsoft.AspNetCore.StaticWebAssets.props",
-        "buildMultiTargeting/Blazorise.Sidebar.props",
-        "buildTransitive/Blazorise.Sidebar.props",
-        "lib/net5.0/Blazorise.Sidebar.dll",
-        "lib/net5.0/Blazorise.Sidebar.xml",
-        "staticwebassets/blazorise.sidebar.css"
       ]
     },
     "ClosedXML/0.95.4": {
@@ -8853,7 +8793,6 @@
       "Blazored.Modal >= 6.0.1",
       "Blazorise.Bootstrap >= 0.9.3.4",
       "Blazorise.Icons.FontAwesome >= 0.9.3.4",
-      "Blazorise.Sidebar >= 0.9.3.4",
       "ClosedXML >= 0.95.4",
       "DataAccessLibrary >= 1.0.0",
       "Faso.Blazor.SpinKit >= 1.0.1",
@@ -8865,7 +8804,8 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\yson\\.nuget\\packages\\": {}
+    "C:\\Users\\yson\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
@@ -8876,8 +8816,12 @@
       "packagesPath": "C:\\Users\\yson\\.nuget\\packages\\",
       "outputPath": "F:\\Blazor\\InventoryControlV2\\ICV2_Web\\obj\\",
       "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
       "configFilePaths": [
         "C:\\Users\\yson\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
@@ -8920,10 +8864,6 @@
             "version": "[0.9.3.4, )"
           },
           "Blazorise.Icons.FontAwesome": {
-            "target": "Package",
-            "version": "[0.9.3.4, )"
-          },
-          "Blazorise.Sidebar": {
             "target": "Package",
             "version": "[0.9.3.4, )"
           },
@@ -8970,7 +8910,7 @@
         "downloadDependencies": [
           {
             "name": "Microsoft.NETCore.App.Runtime.browser-wasm",
-            "version": "[5.0.5, 5.0.5]"
+            "version": "[5.0.6, 5.0.6]"
           }
         ],
         "frameworkReferences": {
@@ -8978,7 +8918,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\5.0.202\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\5.0.203\\RuntimeIdentifierGraph.json"
       }
     },
     "runtimes": {

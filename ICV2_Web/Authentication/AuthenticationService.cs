@@ -47,22 +47,23 @@ namespace ICV2_Web.Authentication
 
             var authContent = await authResult.Content.ReadAsStringAsync();
 
-            if (authResult.IsSuccessStatusCode == false)
+            if (authResult.IsSuccessStatusCode)
             {
-                return null;
+
+                var result = JsonSerializer.Deserialize<AuthenticatedUserModel>(
+                    authContent,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                await localStorage.SetItemAsync("authToken", result.Access_Token);
+
+
+                ((CustomAuthStateProvider)authenticationStateProvider).NotifyUserAuthentication(result.Access_Token);
+
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", result.Access_Token);
+
+                return result;
             }
-            var result = JsonSerializer.Deserialize<AuthenticatedUserModel>(
-                authContent,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-            await localStorage.SetItemAsync("authToken", result.Access_Token);
-
-
-            ((CustomAuthStateProvider)authenticationStateProvider).NotifyUserAuthentication(result.Access_Token);
-
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", result.Access_Token);
-
-            return result;
+            return new AuthenticatedUserModel();
         }
         public async Task LogOut()
         {

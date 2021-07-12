@@ -79,6 +79,7 @@ else
     private IEnumerable<Stocks> Stocks { get; set; }
     private IEnumerable<StockLocations> Location { get; set; }
 
+    private List<Company> companies { get; set; }
     private string CompCode { get; set; }
 
     private async Task GenerateReport()
@@ -101,6 +102,7 @@ else
 
     private async Task GenerateExcel(List<NEAREXPIRYRESULT> data)
     {
+        string PayToCompany = companies.Where(y => y.Code == formModel.CompanyCode).Select(x => x.Name).First();
         using (XLWorkbook wb = new XLWorkbook())
         {
 
@@ -109,7 +111,7 @@ else
             IXLWorksheet ws = wb.Worksheets.Add("Near Expiry");
             IXLCell cell;
 
-            cell = ws.Cell("A" + ++rowNumber).SetValue(formModel.CompanyCode);
+            cell = ws.Cell("A" + ++rowNumber).SetValue(PayToCompany);
             cell = ws.Cell("A" + ++rowNumber).SetValue("As of Date");
             cell = ws.Cell("B" + rowNumber).SetValue(formModel.AsOfDate.ToShortDateString().ToString());
             rowNumber++;
@@ -173,7 +175,7 @@ else
     private async Task LoadData()
     {
         CompCode = AppState.selectedCompanyCode;
-
+        companies = await http.GetFromJsonAsync<List<Company>>("api/Navigation/GetCompany");
         Stocks = await http.GetFromJsonAsync<IEnumerable<Stocks>>("api/Qne/GetStockItems?companyCode=" + CompCode);
         Location = await http.GetFromJsonAsync<IEnumerable<StockLocations>>("api/Qne/GetStockLocations?companyCode=" + CompCode);
 

@@ -35,20 +35,9 @@ namespace ICV2_API
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            
-            services.AddCors(options =>
-            {
-                options.AddPolicy("AllowCors", builder =>
-                {
-                    builder.AllowAnyOrigin();
-                    builder.AllowAnyHeader();
-                    builder.AllowAnyMethod();
-                });
-            });
 
+            services.AddCors();
             services.AddControllers();
-  
-
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = "JwtBearer";
@@ -85,14 +74,19 @@ namespace ICV2_API
         {
             if (env.IsDevelopment())
             {
+                //app.UseMaintainCorsHeaders();
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseHttpsRedirection();
+            app.UseCors(builder =>
+            {
+                builder.WithOrigins(Configuration["Origin"]).AllowAnyMethod().AllowAnyHeader().AllowCredentials().Build();
+            });
+
+            //app.UseHttpsRedirection();
 
             app.UseRouting();
 
-            app.UseCors("AllowCors");
 
             app.UseAuthentication();
             app.UseAuthorization();

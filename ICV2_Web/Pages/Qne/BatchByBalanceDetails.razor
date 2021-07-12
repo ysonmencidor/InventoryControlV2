@@ -97,6 +97,7 @@ else
     private IEnumerable<StockLocations> Location { get; set; }
     //private IEnumerable<BATCHNOBALANCEDETAILSRESULT> result { get; set; }
     List<BATCHNOBALANCEDETAILSRESULT> Result = new List<BATCHNOBALANCEDETAILSRESULT>();
+    private List<Company> companies { get; set; }
     private string CompCode { get; set; }
 
     //protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -126,7 +127,7 @@ else
     private async Task LoadData()
     {
         CompCode = AppState.selectedCompanyCode;
-
+        companies = await http.GetFromJsonAsync<List<Company>>("api/Navigation/GetCompany");
         StockGroup = await http.GetFromJsonAsync<IEnumerable<StockGroups>>("api/Qne/GetStockGroups?companyCode=" + CompCode);
         Location = await http.GetFromJsonAsync<IEnumerable<StockLocations>>("api/Qne/GetStockLocations?companyCode=" + CompCode);
 
@@ -145,12 +146,13 @@ else
             var data = JsonSerializer.Deserialize<List<BATCHNOBALANCEDETAILSRESULT>>(responseString,
               new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
 
-             await GenerateExcel(data);
+            await GenerateExcel(data);
         }
     }
 
     private async Task GenerateExcel(List<BATCHNOBALANCEDETAILSRESULT> data)
     {
+        string PayToCompany = companies.Where(y => y.Code == formModel.CompanyCode).Select(x => x.Name).First();
         using (XLWorkbook wb = new XLWorkbook())
         {
 
@@ -159,7 +161,7 @@ else
             IXLWorksheet ws = wb.Worksheets.Add("Batch No. Balance Details");
             IXLCell cell;
 
-            cell = ws.Cell("A" + ++rowNumber).SetValue(formModel.CompanyCode);
+            cell = ws.Cell("A" + ++rowNumber).SetValue(PayToCompany);
             cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
             cell.Style.Font.Bold = true;
 
@@ -213,12 +215,19 @@ else
             {
                 rowNumber++;
                 cell = ws.Cell("A" + rowNumber).SetValue(result.StockCode);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
                 cell = ws.Cell("B" + rowNumber).SetValue(result.StockName);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
                 cell = ws.Cell("C" + rowNumber).SetValue(result.LocationCode);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
                 cell = ws.Cell("D" + rowNumber).SetValue(result.Batchno);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
                 cell = ws.Cell("E" + rowNumber).SetValue(result.ExpiryDate);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
                 cell = ws.Cell("F" + rowNumber).SetValue(result.OnHandQty);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
                 cell = ws.Cell("G" + rowNumber).SetValue(result.UOMCode);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
 
             }
 

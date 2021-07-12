@@ -167,13 +167,6 @@ using Blazorise.Icons;
 #line hidden
 #nullable disable
 #nullable restore
-#line 23 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
-using Blazorise.Sidebar;
-
-#line default
-#line hidden
-#nullable disable
-#nullable restore
 #line 24 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
 using ICV2_Web.Services;
 
@@ -314,6 +307,7 @@ using ICV2_Web.JSHelper;
                 cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
                 cell = ws.Cell("E" + rowNumber).SetValue(item.UOMCode);
                 cell = ws.Cell("F" + rowNumber).SetValue(item.Price);
+                cell.Style.NumberFormat.Format = "#,##0.00";
                 cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
                 cell = ws.Cell("G" + rowNumber).SetValue(item.Amount);
 

@@ -511,10 +511,6 @@ using ICV2_Web.JSHelper;
                         common_invalid_format += item.AMOUNT;
                     }
 
-
-
-
-
                 }
                 else
                 {

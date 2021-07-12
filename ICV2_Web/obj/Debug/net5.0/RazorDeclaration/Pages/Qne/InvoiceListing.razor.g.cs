@@ -167,13 +167,6 @@ using Blazorise.Icons;
 #line hidden
 #nullable disable
 #nullable restore
-#line 23 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
-using Blazorise.Sidebar;
-
-#line default
-#line hidden
-#nullable disable
-#nullable restore
 #line 24 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
 using ICV2_Web.Services;
 
@@ -187,14 +180,277 @@ using NEvaldas.Blazor.Select2;
 #line default
 #line hidden
 #nullable disable
+#nullable restore
+#line 3 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\InvoiceListing.razor"
+using System.Text.Json;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 4 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\InvoiceListing.razor"
+using System.IO;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 5 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\InvoiceListing.razor"
+using ClosedXML.Excel;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 6 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\InvoiceListing.razor"
+using ICV2_Web.JSHelper;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 7 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\InvoiceListing.razor"
+           [Authorize(Roles = "Administrator,User")]
+
+#line default
+#line hidden
+#nullable disable
     [Microsoft.AspNetCore.Components.RouteAttribute("/InvoiceListing")]
-    public partial class InvoiceListing : Microsoft.AspNetCore.Components.ComponentBase
+    public partial class InvoiceListing : Microsoft.AspNetCore.Components.ComponentBase, IDisposable
     {
         #pragma warning disable 1998
         protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder __builder)
         {
         }
         #pragma warning restore 1998
+#nullable restore
+#line 112 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\InvoiceListing.razor"
+       
+
+
+        INVOICEMATCHLISTINGFILTER formModel = new();
+
+    private List<Debtors> debtors { get; set; }
+    private List<Areas> area { get; set; }
+    private List<DebtorCategory> debtorCategories { get; set; }
+    private List<SalesPersons> salesPersons { get; set; }
+    private List<Company> companies { get; set; }
+    //private List<CUSTOMERSTATEMENTRESULT> cUSTOMERSTATEMENTRESULTs = new();
+
+
+    private async Task GenerateReport()
+    {
+        formModel.CompanyCode = AppState.selectedCompanyCode;
+        var httpRequest = await http.PostAsJsonAsync("api/Report/GenerateInvoiceMatchListing", formModel);
+
+        if (httpRequest.IsSuccessStatusCode)
+        {
+            var responseString = await httpRequest.Content.ReadAsStringAsync();
+
+            //Console.WriteLine(responseString);
+            var data = JsonSerializer.Deserialize<List<INVOICEMATCHLISTING>>(responseString,
+              new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+
+            await GenerateExcel(data);
+
+        }
+    }
+
+    private async Task GenerateExcel(List<INVOICEMATCHLISTING> list)
+    {
+        string PayToCompany = companies.Where(y => y.Code == formModel.CompanyCode).Select(x => x.Name).First();
+
+        IXLAddress AMOUNT_BEGIN_CELL;
+        IXLAddress AMOUNT_END_CELL;
+        IXLAddress BALANCE_BEGIN_CELL;
+        IXLAddress BALANCE_END_CELL;
+        IXLAddress MATCHEDAMOUNT_BEGIN_CELL;
+        IXLAddress MATCHEDAMOUNT_END_CELL;
+
+        list = list.OrderBy(i => i.INVOICEDATE).ToList();
+
+        using (XLWorkbook wb = new XLWorkbook())
+        {
+            if (list.Count() > 0)
+            {
+                IXLWorksheet ws = wb.Worksheets.Add("Invoice Matching Listing");
+
+                IXLCell cell;
+                int rowNumber = 0;
+                cell = ws.Cell("A" + ++rowNumber).SetValue(PayToCompany);
+                cell = ws.Cell("A" + ++rowNumber).SetValue("Date From: ");
+                cell = ws.Cell("B" + rowNumber).SetValue(formModel.DateFrom?.ToShortDateString());
+                cell = ws.Cell("A" + ++rowNumber).SetValue("Date To: ");
+                cell = ws.Cell("B" + rowNumber).SetValue(formModel.DateTo?.ToShortDateString());
+                rowNumber++;
+                rowNumber++;
+                cell = ws.Cell("A" + rowNumber).SetValue("DOC #");
+                cell = ws.Cell("B" + rowNumber).SetValue("DATE");
+                cell = ws.Cell("C" + rowNumber).SetValue("REF #");
+                cell = ws.Cell("D" + rowNumber).SetValue("DEBTOR CODE");
+                cell = ws.Cell("E" + rowNumber).SetValue("DEBTOR NAME");
+                cell = ws.Cell("F" + rowNumber).SetValue("CURRENCY");
+                cell = ws.Cell("G" + rowNumber).SetValue("AMOUNT");
+                cell = ws.Cell("H" + rowNumber).SetValue("MATCHED DETAILS");
+                //cell = ws.Cell("I" + rowNumber).SetValue("");
+                //cell = ws.Cell("J" + rowNumber).SetValue("");
+                ws.Range("H" + rowNumber + ":J" + rowNumber).Row(1).Merge();
+                cell = ws.Cell("K" + rowNumber).SetValue("BALANCE");
+                cell = ws.Cell("L" + rowNumber).SetValue("AGING");
+
+
+
+                rowNumber++;
+
+                cell = ws.Cell("G" + rowNumber);
+                AMOUNT_BEGIN_CELL = cell.Address;
+
+                cell = ws.Cell("K" + rowNumber);
+                BALANCE_BEGIN_CELL = cell.Address;
+
+                cell = ws.Cell("J" + rowNumber);
+                MATCHEDAMOUNT_BEGIN_CELL = cell.Address;
+
+
+
+                for (int i = 0; i < list.Count; i++)
+                {
+                    var inv = list[i];
+
+
+                    cell = ws.Cell("A" + rowNumber).SetValue(inv.INVOICECODE);
+                    cell = ws.Cell("B" + rowNumber).SetValue(inv.INVOICEDATE);
+                    cell = ws.Cell("C" + rowNumber).SetValue(inv.INVOICEREFNO);
+                    cell = ws.Cell("D" + rowNumber).SetValue(inv.DEBTORACCOUNT);
+                    cell = ws.Cell("E" + rowNumber).SetValue(inv.DEBTORNAME);
+                    cell = ws.Cell("F" + rowNumber).SetValue(inv.FCURRENCYCODE);
+                    cell = ws.Cell("G" + rowNumber).SetValue(inv.LOCALTOTALAMOUNT);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+
+                    cell = ws.Cell("K" + rowNumber).SetValue(inv.BALANCE);
+
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+
+                    if (inv.matchedDetailList.Count > 0)
+                    {
+                        foreach (var matched in inv.matchedDetailList)
+                        {
+                            cell = ws.Cell("H" + rowNumber).SetValue(matched.DOCNO);
+                            cell = ws.Cell("I" + rowNumber).SetValue(matched.DOCDATE);
+                            cell = ws.Cell("J" + rowNumber).SetValue(matched.AMOUNT);
+                            cell.Style.NumberFormat.Format = "#,##0.00";
+                            cell = ws.Cell("L" + rowNumber).SetValue(matched.AGING);
+                            rowNumber++;
+                        }
+                        rowNumber--;
+                    }
+                    else
+                    {
+
+                        cell = ws.Cell("L" + rowNumber).SetValue(inv.AGING);
+                    }
+
+                    rowNumber++;
+                }
+                cell = ws.Cell("G" + (rowNumber - 1));
+                AMOUNT_END_CELL = cell.Address;
+
+                cell = ws.Cell("J" + (rowNumber - 1));
+                MATCHEDAMOUNT_END_CELL = cell.Address;
+
+                cell = ws.Cell("K" + (rowNumber - 1));
+                BALANCE_END_CELL = cell.Address;
+
+                cell = ws.Cell("E" + rowNumber).SetValue("TOTAL");
+
+                cell = ws.Cell("G" + rowNumber);
+                cell.FormulaA1 = "SUM(" + AMOUNT_BEGIN_CELL.ToString() + ":" + AMOUNT_END_CELL.ToString() + ")";
+                cell.Style.NumberFormat.Format = "#,##0.00";
+
+                cell = ws.Cell("J" + rowNumber);
+                cell.FormulaA1 = "SUM(" + MATCHEDAMOUNT_BEGIN_CELL.ToString() + ":" + MATCHEDAMOUNT_END_CELL.ToString() + ")";
+                cell.Style.NumberFormat.Format = "#,##0.00";
+
+                cell = ws.Cell("K" + rowNumber);
+                cell.FormulaA1 = "SUM(" + BALANCE_BEGIN_CELL.ToString() + ":" + BALANCE_END_CELL.ToString() + ")";
+                cell.Style.NumberFormat.Format = "#,##0.00";
+
+
+                ws.Column("A").Width = 15;
+                ws.Column("B").Width = 15;
+                ws.Column("C").Width = 15;
+                ws.Column("D").Width = 15;
+                ws.Column("E").Width = 15;
+                ws.Column("F").Width = 15;
+                ws.Column("G").Width = 15;
+                ws.Column("H").Width = 15;
+                ws.Column("I").Width = 15;
+                ws.Column("J").Width = 15;
+
+            }
+            if (wb.Worksheets.Count > 0)
+            {
+                MemoryStream ms = GetStream(wb);
+                byte[] bytes = ms.ToArray();
+                ms.Close();
+
+                await js.SaveAsFileAsync("Invoice_Matching_Listing" + formModel.DateFrom?.ToShortDateString() + "-" + formModel.DateTo?.ToShortDateString(), bytes, "application/vnd.ms-excel");
+            }
+            else
+            {
+                await js.InvokeVoidAsync("alert", "No record found.");
+            }
+        }
+    }
+    private MemoryStream GetStream(XLWorkbook excelWorkbook)
+    {
+        MemoryStream fs = new MemoryStream();
+        excelWorkbook.SaveAs(fs);
+        fs.Position = 0;
+        return fs;
+    }
+
+    private async Task LoadData()
+    {
+        companies = await http.GetFromJsonAsync<List<Company>>("api/Navigation/GetCompany");
+        debtors = await http.GetFromJsonAsync<List<Debtors>>("api/Qne/GetDebtors?companyCode=" + AppState.selectedCompanyCode);
+        area = await http.GetFromJsonAsync<List<Areas>>("api/Qne/GetAreas?companyCode=" + AppState.selectedCompanyCode);
+        debtorCategories = await http.GetFromJsonAsync<List<DebtorCategory>>("api/Qne/DebtorCategories?companyCode=" + AppState.selectedCompanyCode);
+        salesPersons = await http.GetFromJsonAsync<List<SalesPersons>>("api/Qne/GetSalesPersons?companyCode=" + AppState.selectedCompanyCode);
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState.CompanyReady())
+        {
+            await LoadData();
+        }
+    }
+    private async Task AppState_StateChanged(ComponentBase Source, string Property)
+    {
+        if (Source != this)
+        {
+            if (AppState.CompanyReady())
+            {
+                await LoadData();
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    protected override void OnInitialized()
+    {
+        AppState.StateChanged += async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+    void IDisposable.Dispose()
+    {
+        AppState.StateChanged -= async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+
+#line default
+#line hidden
+#nullable disable
+        [global::Microsoft.AspNetCore.Components.InjectAttribute] private IJSRuntime js { get; set; }
+        [global::Microsoft.AspNetCore.Components.InjectAttribute] private HttpClient http { get; set; }
+        [global::Microsoft.AspNetCore.Components.InjectAttribute] private AppState AppState { get; set; }
     }
 }
 #pragma warning restore 1591

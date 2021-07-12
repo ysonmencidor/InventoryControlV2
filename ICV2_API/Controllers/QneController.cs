@@ -11,7 +11,6 @@ using System.Threading.Tasks;
 
 namespace ICV2_API.Controllers
 {
-    [EnableCors("AllowCors")]
     [Route("api/[controller]")]
     [ApiController]
     public class QneController : ControllerBase
@@ -38,6 +37,38 @@ namespace ICV2_API.Controllers
                 return BadRequest();
             }
         }
+
+        [Route("GetStockAssembly")]
+        [HttpGet]
+        public async Task<IActionResult> GetStockAssembly(string companyCode)
+        {
+            var data = await qneDataService.GetStockAssembly(companyCode);
+
+            if (data != null)
+            {
+                return Ok(data);
+            }
+            else
+            {
+                return BadRequest();
+            }
+        }
+        [Route("GetStockAssemblyCodes")]
+        [HttpGet]
+        public async Task<IActionResult> GetStockAssemblyCodes(string companyCode, Guid StockId)
+        {
+            var data = await qneDataService.GetStockAssemblyCodes(companyCode, StockId);
+
+            if (data != null)
+            {
+                return Ok(data);
+            }
+            else
+            {
+                return BadRequest();
+            }
+        }
+        
         [Route("GetStockGroups")]
         [HttpGet]
         public async Task<IEnumerable<StockGroups>> GetStockGroup(string companyCode)
@@ -117,5 +148,30 @@ namespace ICV2_API.Controllers
              }
             return BadRequest();
         }
+
+        [Route("GetDepartments")]
+        [HttpGet]
+        public async Task<IActionResult> GetDepartments(string companyCode)
+        {
+            var model = await qneDataService.GetDepartments(companyCode);
+            if (model != null)
+            {
+                return Ok(model);
+            }
+            return BadRequest();
+        }
+
+        [Route("GetGLAccounts")]
+        [HttpGet]
+        public async Task<IActionResult> GetGLAccounts(string companyCode,Guid AccountIds)
+        {
+            var model = await qneDataService.GetGLAccounts(companyCode,AccountIds);
+            if (model != null)
+            {
+                return Ok(model);
+            }
+            return BadRequest();
+        }
+        
     }
 }

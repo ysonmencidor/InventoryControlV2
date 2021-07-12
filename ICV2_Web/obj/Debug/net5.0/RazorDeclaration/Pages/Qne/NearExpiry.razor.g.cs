@@ -167,13 +167,6 @@ using Blazorise.Icons;
 #line hidden
 #nullable disable
 #nullable restore
-#line 23 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
-using Blazorise.Sidebar;
-
-#line default
-#line hidden
-#nullable disable
-#nullable restore
 #line 24 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
 using ICV2_Web.Services;
 
@@ -239,6 +232,7 @@ using ICV2_Web.JSHelper;
     private IEnumerable<Stocks> Stocks { get; set; }
     private IEnumerable<StockLocations> Location { get; set; }
 
+    private List<Company> companies { get; set; }
     private string CompCode { get; set; }
 
     private async Task GenerateReport()
@@ -261,6 +255,7 @@ using ICV2_Web.JSHelper;
 
     private async Task GenerateExcel(List<NEAREXPIRYRESULT> data)
     {
+        string PayToCompany = companies.Where(y => y.Code == formModel.CompanyCode).Select(x => x.Name).First();
         using (XLWorkbook wb = new XLWorkbook())
         {
 
@@ -269,7 +264,7 @@ using ICV2_Web.JSHelper;
             IXLWorksheet ws = wb.Worksheets.Add("Near Expiry");
             IXLCell cell;
 
-            cell = ws.Cell("A" + ++rowNumber).SetValue(formModel.CompanyCode);
+            cell = ws.Cell("A" + ++rowNumber).SetValue(PayToCompany);
             cell = ws.Cell("A" + ++rowNumber).SetValue("As of Date");
             cell = ws.Cell("B" + rowNumber).SetValue(formModel.AsOfDate.ToShortDateString().ToString());
             rowNumber++;
@@ -333,7 +328,7 @@ using ICV2_Web.JSHelper;
     private async Task LoadData()
     {
         CompCode = AppState.selectedCompanyCode;
-
+        companies = await http.GetFromJsonAsync<List<Company>>("api/Navigation/GetCompany");
         Stocks = await http.GetFromJsonAsync<IEnumerable<Stocks>>("api/Qne/GetStockItems?companyCode=" + CompCode);
         Location = await http.GetFromJsonAsync<IEnumerable<StockLocations>>("api/Qne/GetStockLocations?companyCode=" + CompCode);
 

@@ -11,18 +11,41 @@ using System.Linq;
 
 namespace DataAccessLibrary.Models.QneServices
 {
-    public class QneDataService 
+    public class QneDataService
     {
         public async Task<IEnumerable<Stocks>> GetStocks(string companyCode)
         {
             var sqlcon = QNEConnectionString.ChooseConnection(companyCode);
             using (IDbConnection con = new SqlConnection(sqlcon))
             {
-                var sql = "SELECT Id,StockCode FROM Stocks";
+                var sql = "SELECT Id,StockCode,StockName FROM Stocks";
                 var model = await con.QueryAsync<Stocks>(sql, commandType: CommandType.Text);
                 return model;
             }
         }
+
+        public async Task<IEnumerable<Stocks>> GetStockAssembly(string companyCode)
+        {
+            var sqlcon = QNEConnectionString.ChooseConnection(companyCode);
+            using (IDbConnection con = new SqlConnection(sqlcon))
+            {
+                var sql = @"SELECT DISTINCT StockId AS Id,StockCode,StockName FROM StockAssembly A
+                            JOIN Stocks B
+                            ON A.StockId = B.Id";
+                var model = await con.QueryAsync<Stocks>(sql, commandType: CommandType.Text);
+                return model;
+            }
+        }
+
+        public async Task<IEnumerable<StockAssembly>> GetStockAssemblyCodes(string companyCode,Guid StockId)
+        {
+            var sqlcon = QNEConnectionString.ChooseConnection(companyCode);
+            using IDbConnection con = new SqlConnection(sqlcon);
+            var sql = @"SELECT AssemblyCode FROM StockAssembly WHERE StockId = @StockId";
+            var model = await con.QueryAsync<StockAssembly>(sql, new { StockId }, commandType: CommandType.Text);
+            return model;
+        }
+
         public async Task<IEnumerable<StockGroups>> GetStockGroup(string companyCode)
         {
             var sqlcon = QNEConnectionString.ChooseConnection(companyCode);
@@ -99,7 +122,7 @@ namespace DataAccessLibrary.Models.QneServices
                 return model;
             }
         }
-        public async Task<FGMASTERFILEMODEL> GetFGByCode(string companyCode,string stockCode)
+        public async Task<FGMASTERFILEMODEL> GetFGByCode(string companyCode, string stockCode)
         {
             using (IDbConnection con = new SqlConnection(QNEConnectionString.ChooseConnection(companyCode)))
             {
@@ -111,8 +134,8 @@ namespace DataAccessLibrary.Models.QneServices
                             ON A.StockCode = B.STOCKCODE WHERE A.STOCKCODE = @STCODE";
                 DynamicParameters p = new DynamicParameters();
                 p.Add("@STCODE", stockCode);
-                var model = await con.QuerySingleAsync<FGMASTERFILEMODEL>(sql , p, commandType: CommandType.Text);
-                return model;           
+                var model = await con.QuerySingleAsync<FGMASTERFILEMODEL>(sql, p, commandType: CommandType.Text);
+                return model;
             }
         }
         public async Task<int> InsertUpdateFGMASTERFILE(FGMASTERFILEFILTER filter)
@@ -176,7 +199,7 @@ namespace DataAccessLibrary.Models.QneServices
             using (IDbConnection con = new SqlConnection(QNEConnectionString.ChooseConnection(companyCode)))
             {
                 const string sql = @"SELECT Id,StockOutCode FROM StockOuts ORDER BY StockOutCode DESC";
-                return await con.QueryAsync<StockIssue>(sql, commandType:CommandType.Text);
+                return await con.QueryAsync<StockIssue>(sql, commandType: CommandType.Text);
             }
         }
         public async Task<IEnumerable<stockbatchnumbers>> GetBatchNumByStockId(string companyCode, Guid StockId)
@@ -187,6 +210,23 @@ namespace DataAccessLibrary.Models.QneServices
                 return await con.QueryAsync<stockbatchnumbers>(sql, new { StockId }, commandType: CommandType.Text);
             }
         }
-
+        public async Task<IEnumerable<Department>> GetDepartments(string companyCode)
+        {
+            var sqlcon = QNEConnectionString.ChooseConnection(companyCode);
+            using (IDbConnection con = new SqlConnection(sqlcon))
+            {
+                var sql = "SELECT Id,AccountCode,Description FROM Accounts order by RowIndex";
+                var model = await con.QueryAsync<Department>(sql, commandType: CommandType.Text);
+                return model;
+            }
+        }
+        public async Task<IEnumerable<GLAccounts>> GetGLAccounts(string companyCode, Guid AccountId)
+        {
+            var sqlcon = QNEConnectionString.ChooseConnection(companyCode);
+            using IDbConnection con = new SqlConnection(sqlcon);
+            var sql = "SELECT AccountId,GLAccountCode,Description FROM GLAccounts WHERE AccountId = @AccountId order by RowIndex";
+            var model = await con.QueryAsync<GLAccounts>(sql, new { AccountId}, commandType: CommandType.Text);
+            return model;
+        }
     }
 }

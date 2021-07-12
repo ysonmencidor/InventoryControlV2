@@ -33,7 +33,7 @@ namespace ICV2_Web
             //builder.Services.AddBlazoredModal();
             builder.Services.AddAuthorizationCore();
             builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
-            builder.Services.AddScoped<AppState>();
+            builder.Services.AddSingleton<AppState>();
 
             //var baseAddress = builder.Configuration.GetValue<string>("BaseUrl");
 

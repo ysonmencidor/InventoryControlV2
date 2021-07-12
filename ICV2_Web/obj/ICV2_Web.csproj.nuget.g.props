@@ -5,12 +5,13 @@
     <RestoreTool Condition=" '$(RestoreTool)' == '' ">NuGet</RestoreTool>
     <ProjectAssetsFile Condition=" '$(ProjectAssetsFile)' == '' ">$(MSBuildThisFileDirectory)project.assets.json</ProjectAssetsFile>
     <NuGetPackageRoot Condition=" '$(NuGetPackageRoot)' == '' ">$(UserProfile)\.nuget\packages\</NuGetPackageRoot>
-    <NuGetPackageFolders Condition=" '$(NuGetPackageFolders)' == '' ">C:\Users\yson\.nuget\packages\</NuGetPackageFolders>
+    <NuGetPackageFolders Condition=" '$(NuGetPackageFolders)' == '' ">C:\Users\yson\.nuget\packages\;C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages</NuGetPackageFolders>
     <NuGetProjectStyle Condition=" '$(NuGetProjectStyle)' == '' ">PackageReference</NuGetProjectStyle>
     <NuGetToolVersion Condition=" '$(NuGetToolVersion)' == '' ">5.9.1</NuGetToolVersion>
   </PropertyGroup>
   <ItemGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
     <SourceRoot Include="C:\Users\yson\.nuget\packages\" />
+    <SourceRoot Include="C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages\" />
   </ItemGroup>
   <PropertyGroup>
     <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
@@ -29,7 +30,6 @@
     <Import Project="$(NuGetPackageRoot)nevaldas.blazor.select2\0.1.0\buildTransitive\NEvaldas.Blazor.Select2.props" Condition="Exists('$(NuGetPackageRoot)nevaldas.blazor.select2\0.1.0\buildTransitive\NEvaldas.Blazor.Select2.props')" />
     <Import Project="$(NuGetPackageRoot)microsoft.aspnetcore.components.webassembly\5.0.4\build\net5.0\Microsoft.AspNetCore.Components.WebAssembly.props" Condition="Exists('$(NuGetPackageRoot)microsoft.aspnetcore.components.webassembly\5.0.4\build\net5.0\Microsoft.AspNetCore.Components.WebAssembly.props')" />
     <Import Project="$(NuGetPackageRoot)blazorise\0.9.3.4\buildTransitive\Blazorise.props" Condition="Exists('$(NuGetPackageRoot)blazorise\0.9.3.4\buildTransitive\Blazorise.props')" />
-    <Import Project="$(NuGetPackageRoot)blazorise.sidebar\0.9.3.4\buildTransitive\Blazorise.Sidebar.props" Condition="Exists('$(NuGetPackageRoot)blazorise.sidebar\0.9.3.4\buildTransitive\Blazorise.Sidebar.props')" />
     <Import Project="$(NuGetPackageRoot)blazorise.bootstrap\0.9.3.4\buildTransitive\Blazorise.Bootstrap.props" Condition="Exists('$(NuGetPackageRoot)blazorise.bootstrap\0.9.3.4\buildTransitive\Blazorise.Bootstrap.props')" />
     <Import Project="$(NuGetPackageRoot)blazored.modal\6.0.1\buildTransitive\Blazored.Modal.props" Condition="Exists('$(NuGetPackageRoot)blazored.modal\6.0.1\buildTransitive\Blazored.Modal.props')" />
   </ImportGroup>

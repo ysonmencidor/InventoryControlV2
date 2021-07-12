@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "Qy2iyMU2auFVP7QBXR8CyLq07fp6Ei0aPwQRqJHYQ0V8IY+2aSNN6+C6CDFpdXiUJRgo6BuYURmgmEUAKtbvLA==",
+  "dgSpecHash": "3XPmp2tM7yBBnnVUOcgXOvSzKHC3RU0s2ofS2krIeeicRAb7kkwE5b6rKErTAdEWC6hUgNMQq2E3uhZPmhtEHg==",
   "success": true,
   "projectFilePath": "F:\\Blazor\\InventoryControlV2\\ICV2_Web\\ICV2_Web.csproj",
   "expectedPackageFiles": [
@@ -147,7 +147,7 @@
     "C:\\Users\\yson\\.nuget\\packages\\system.threading.timer\\4.3.0\\system.threading.timer.4.3.0.nupkg.sha512",
     "C:\\Users\\yson\\.nuget\\packages\\system.xml.readerwriter\\4.3.0\\system.xml.readerwriter.4.3.0.nupkg.sha512",
     "C:\\Users\\yson\\.nuget\\packages\\system.xml.xdocument\\4.3.0\\system.xml.xdocument.4.3.0.nupkg.sha512",
-    "C:\\Users\\yson\\.nuget\\packages\\microsoft.netcore.app.runtime.browser-wasm\\5.0.5\\microsoft.netcore.app.runtime.browser-wasm.5.0.5.nupkg.sha512"
+    "C:\\Users\\yson\\.nuget\\packages\\microsoft.netcore.app.runtime.browser-wasm\\5.0.6\\microsoft.netcore.app.runtime.browser-wasm.5.0.6.nupkg.sha512"
   ],
   "logs": []
 }

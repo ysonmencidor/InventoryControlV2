@@ -166,13 +166,6 @@ using Blazorise.Icons;
 #line hidden
 #nullable disable
 #nullable restore
-#line 23 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
-using Blazorise.Sidebar;
-
-#line default
-#line hidden
-#nullable disable
-#nullable restore
 #line 24 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
 using ICV2_Web.Services;
 

@@ -10,7 +10,6 @@
     <PackageReference Include="Blazored.Modal" Version="6.0.1" />
     <PackageReference Include="Blazorise.Bootstrap" Version="0.9.3.4" />
     <PackageReference Include="Blazorise.Icons.FontAwesome" Version="0.9.3.4" />
-    <PackageReference Include="Blazorise.Sidebar" Version="0.9.3.4" />
     <PackageReference Include="ClosedXML" Version="0.95.4" />
     <PackageReference Include="Faso.Blazor.SpinKit" Version="1.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="5.0.4" />

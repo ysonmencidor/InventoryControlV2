@@ -160,13 +160,6 @@ using Blazorise.Icons;
 #line hidden
 #nullable disable
 #nullable restore
-#line 23 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
-using Blazorise.Sidebar;
-
-#line default
-#line hidden
-#nullable disable
-#nullable restore
 #line 24 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
 using ICV2_Web.Services;
 
@@ -234,7 +227,7 @@ using DataAccessLibrary.Models;
         var result = await AuthService.Login(model2);
 
 
-        if (result is not null)
+        if (!string.IsNullOrEmpty(result.Access_Token) && !string.IsNullOrEmpty(result.Username))
         {
             NavManager.NavigateTo("/");
         }

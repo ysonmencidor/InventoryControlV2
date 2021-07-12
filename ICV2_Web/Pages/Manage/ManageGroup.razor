@@ -57,7 +57,7 @@
                                                 <button @onclick="(() => ShowManageForm(item.GroupId, item.Name))" class="btn btn-sm btn-success rounded-circle"><Icon Name="IconName.Server"></Icon></button>
                                             </Tooltip>
                                             <Tooltip Text="Add user to this group">
-                                                <button @onclick="(() => ShowUserForGroupForm(item.GroupId))" class="btn btn-info btn-sm rounded-circle"><Icon Name="IconName.UserPlus"></Icon></button>
+                                                <button @onclick="(() => ShowUserForGroupForm(item.GroupId,item.Name))" class="btn btn-info btn-sm rounded-circle"><Icon Name="IconName.UserPlus"></Icon></button>
                                             </Tooltip>
                                         </td>
                                         <td>
@@ -194,7 +194,8 @@
 <Modal @ref="modalUserRef">
     <ModalContent>
         <ModalHeader>
-
+            <ModalTitle>Manage user's in <em>@selectedGroupName</em> group</ModalTitle>
+            <CloseButton Clicked="@HideModalUserAdd" />
         </ModalHeader>
         <ModalBody>
             <div class="row">
@@ -205,14 +206,14 @@
                                 <Blazorise.Select TValue="int" @bind-SelectedValue="@MenuAccessModel.UserId">
                                     <option value="0">-Select User-</option>
                                     @if (users != null)
-                                    { 
+                                    {
                                         @foreach (var item in users)
                                         {
                                             <option value="@item.Id">@item.Name</option>
                                         }
                                     }
                                 </Blazorise.Select>
-                                
+
                             </Addon>
                             <Addon AddonType="AddonType.End">
                                 <Button Type="ButtonType.Submit" Color="Color.Secondary">Add</Button>
@@ -223,7 +224,7 @@
             </div>
             <div class="row">
                 <div class="col-12">
-                    
+
                     <Table Hoverable="true">
                         <TableHeader ThemeContrast="ThemeContrast.Light">
                             <tr>
@@ -233,26 +234,26 @@
                             </tr>
                         </TableHeader>
                         <TableBody>
-                          @if (menuAccesses != null)
-                          {
-                              foreach (var item in menuAccesses)
-                              {
-                                  int counter = menuAccesses.IndexOf(item) + 1;
-                            <TableRow>
-                                <TableRowCell>
-                                  @counter
-                                </TableRowCell>
-                                <TableRowCell>
-                                    @item.Name
-                                </TableRowCell>
-                                <TableRowCell>
-                                    <button @onclick="(()=> RemoveUserToGrup(item))" class="btn btn-danger btn-sm rounded-circle"><Icon Name="IconName.Remove"></Icon></button>
-                                </TableRowCell>
-                            </TableRow>
-                              }
-                          }
+                            @if (menuAccesses != null)
+                            {
+                                foreach (var item in menuAccesses)
+                                {
+                                    int counter = menuAccesses.IndexOf(item) + 1;
+                                    <TableRow>
+                                        <TableRowCell>
+                                            @counter
+                                        </TableRowCell>
+                                        <TableRowCell>
+                                            @item.Name
+                                        </TableRowCell>
+                                        <TableRowCell>
+                                            <button @onclick="(()=> RemoveUserToGrup(item))" class="btn btn-danger btn-sm rounded-circle"><Icon Name="IconName.Remove"></Icon></button>
+                                        </TableRowCell>
+                                    </TableRow>
+                                }
+                            }
                         </TableBody>
-                      
+
                     </Table>
 
                 </div>
@@ -260,6 +261,7 @@
         </ModalBody>
     </ModalContent>
 </Modal>
+
         @code {
             private Modal modalManage;
             private Modal modalRef;
@@ -389,7 +391,7 @@
                     await js.InvokeVoidAsync("alert", "Please select user.");
                 }
             }
-            private async Task ShowUserForGroupForm(int groupid)
+            private async Task ShowUserForGroupForm(int groupid,string groupName)
             {
                 users = await http.GetFromJsonAsync<List<UserModel>>("api/User/GetUserWithoutGroup");
 
@@ -421,7 +423,7 @@
                 //    }
                 //}
 
-
+                selectedGroupName = groupName;
 
                 SelectedGroupId = groupid;
                 MenuAccessModel.GroupId = SelectedGroupId;
@@ -483,6 +485,10 @@
                     modalRef.Hide();
                 }
                 //Console.WriteLine(model.IsActive);
+            }
+            private void HideModalUserAdd()
+            {
+                modalUserRef.Hide();
             }
             private void HideModal()
             {

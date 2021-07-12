@@ -127,14 +127,19 @@ namespace DataAccessLibrary
             }
         }
 
-        public Task<AuthenticatedUserModel> LoginUser(UserModel userModel)
+        public async Task<AuthenticatedUserModel> LoginUser(UserModel userModel)
         {
             string sql = @"select username,RoleName,UserAccount.Id,UserAccount.AccessType,UserAccount.IsPasswordDefault from UserAccount 
                             join UserRoles on UserAccount.Id = UserRoles.UserId
                             join Roles on UserRoles.RoleId = Roles.RoleId 
                             where IsActive = 'True' and UserAccount.Username = @Username and UserAccount.Password = @Password";
-            var model = db.LoadSingleData<AuthenticatedUserModel>(sql, new { Username = userModel.Username, Password = userModel.Password, Id = userModel.Id, AccessType = userModel.AccessType });
-            return model;
+            var model = await db.LoadSingleData<AuthenticatedUserModel>(sql, new { userModel.Username, userModel.Password });
+
+            if(model != null)
+            {
+                return model;
+            }
+            return null;
         }
 
         public async Task<int> ChangePassword(DefaultPass data)

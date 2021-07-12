@@ -199,6 +199,7 @@ using NEvaldas.Blazor.Select2;
        
 
     private IEnumerable<Company> companies;
+
     protected override async Task OnInitializedAsync()
     {
         companies = await http.GetFromJsonAsync<IEnumerable<Company>>("api/Navigation/GetCompany");

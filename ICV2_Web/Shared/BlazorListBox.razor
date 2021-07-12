@@ -1,0 +1,136 @@
+﻿
+<select @bind="optionSelected" size="@displaySize" class="form-control">
+    @if (DataOptions != null)
+    {
+        foreach (var item in DataOptions)
+        {
+            <option class="px-2" @onmousedown="@(async (em) => CurrentMouseEvent = em)" value="@item.AccountCode"
+                    style="@(Value.Contains(item.AccountCode) ? "background-color:lightgray;" : "")">
+                @item.Description
+            </option>
+        }
+    }
+</select>
+<div class="d-flex justify-content-center mt-1">
+    <Tooltip Text="Select All" Placement="Placement.Bottom">
+        <button type="button" class="btn btn-sm btn-secondary mr-1" @onclick="selectAll">Select All</button>
+    </Tooltip>
+    <Tooltip Text="Clear Selection" Placement="Placement.Bottom">
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="clearlist">Clear</button>
+    </Tooltip>
+</div>
+@code {
+
+    [Parameter] public List<Department> DataOptions { get; set; }
+    [Parameter] public string displayName { get; set; }
+    [Parameter] public int displaySize { get; set; } = 10;
+    [Parameter] public List<string> Value { get; set; }
+    [Parameter] public EventCallback<List<string>> ValueChanged { get; set; }
+
+    private MouseEventArgs CurrentMouseEvent = null;
+
+    private string _optionsSelected;
+
+    private string optionSelected
+    {
+        get { return _optionsSelected; }
+        set
+        {
+            if (optionSelected != null)
+                OnOptionSelected(value);
+            _optionsSelected = "";
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        optionSelected = null;
+        Value = new List<string>() { "Empty" };
+    }
+    private void OnOptionSelected(string value)
+    {
+        bool prior = false;
+        int listone = 0;
+        int listtwo = 0;
+        int f1 = 0;
+        int f2 = 0;
+
+        if (CurrentMouseEvent.ShiftKey && !value.Contains("Empty"))
+        {
+            for (int i = 0; i < DataOptions.Count; i++)
+            {
+                if (value == DataOptions[i].AccountCode)
+                {
+                    listone = i;
+                }
+            }
+            foreach (var item in Value)
+            {
+                for (int i = 0; i < DataOptions.Count; i++)
+                {
+                    if (item == DataOptions[i].AccountCode)
+                    {
+                        if (i < listone)
+                        {
+                            prior = true;
+                            listtwo = i;
+                        }
+                        if (i > listtwo && prior == false)
+                        {
+                            listtwo = i;
+                        }
+                    }
+                }
+            }
+            if (!prior)
+            {
+                f1 = listone; f2 = listtwo;
+            }
+            else
+            {
+                f1 = listtwo; f2 = listone;
+            }
+            for (int i = f1; i <= f2; i++)
+            {
+                string itemToAdd = DataOptions[i].AccountCode;
+                if (!Value.Contains(itemToAdd))
+                {
+                    Value.Add(itemToAdd);
+                }
+            }
+
+        }
+        else
+        {
+            if (!CurrentMouseEvent.CtrlKey || value.Contains("Empty"))
+                Value.Clear();
+            if (!Value.Contains(value))
+                Value.Add(value);
+            else
+                Value.Remove(value);
+
+            if (Value.Count == 0)
+            {
+                Value.Add("Empty");
+            }
+        }
+
+        ValueChanged.InvokeAsync(Value);
+    }
+
+    private void clearlist()
+    {
+        Value.Clear();
+        Value.Add("Empty");
+        ValueChanged.InvokeAsync(Value);
+    }
+    private void selectAll()
+    {
+        Value.Clear();
+        foreach (var item in DataOptions)
+        {
+            Value.Add(item.AccountCode);
+        }
+        ValueChanged.InvokeAsync(Value);
+    }
+}

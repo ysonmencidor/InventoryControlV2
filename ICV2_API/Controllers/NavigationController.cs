@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 
 namespace ICV2_API.Controllers
 {
-    [EnableCors("AllowCors")]
     [Route("api/[controller]")]
     [ApiController]
     public class NavigationController : ControllerBase

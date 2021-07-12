@@ -39,6 +39,58 @@ namespace DataAccessLibrary.Models.QneServices
             }
         }
 
+        public async Task<IEnumerable<MATERIALCONSUMPTIONRESULT>> GenerateMaterialConsumptions(MATERIALCONSUMPTIONFILTER filter)
+        {
+  
+            using (IDbConnection con = new SqlConnection(QNEConnectionString.ChooseConnection(filter.CompanyCode)))
+            {
+                string query = @"Select (SELECT TOP 1 StockAssembly.AssemblyCode
+		                        FROM
+			                        StockAssembly
+		                        WHERE
+			                        StockAssembly.Id = A.StockAssemblyId
+	                        ) AS ASSEMBLYCODE,
+                            E.GroupCode,B.StockCode AS STOCKCODE,B.StockName AS DESCRIPTION,C.UOMCode AS UOM,A.Qty AS QTY,A.UnitCost AS COST,
+                            A.Qty * A.UnitCost AS AMOUNT,
+                            D.BatchNo from StockAssemblyDetail A
+                            LEFT JOIN Stocks B
+                            ON A.StockId = B.Id
+                            LEFT JOIN UOMs C
+                            ON A.UOMId = C.Id
+                            LEFT JOIN StockBatchNumbers D
+                            ON A.StockBatchNumberId = D.Id
+                            LEFT JOIN StockGroups E
+                            ON E.Id = B.GroupId
+                            WHERE A.StockId = @StockId
+                            AND A.StockAssemblyId IN (SELECT Id FROM StockAssembly WHERE AssemblyCode like @DocumentCode)";
+
+                string query2 = @"Select (SELECT TOP 1 StockAssembly.AssemblyCode
+		                        FROM
+			                        StockAssembly
+		                        WHERE
+			                        StockAssembly.Id = A.StockAssemblyId
+	                        ) AS ASSEMBLYCODE,
+                            E.GroupCode,B.StockCode AS STOCKCODE,B.StockName AS DESCRIPTION,C.UOMCode AS UOM,A.Qty AS QTY,A.UnitCost AS COST,
+                            A.Qty * A.UnitCost AS AMOUNT,
+                            D.BatchNo from StockAssemblyDetail A
+                            LEFT JOIN Stocks B
+                            ON A.StockId = B.Id
+                            LEFT JOIN UOMs C
+                            ON A.UOMId = C.Id
+                            LEFT JOIN StockBatchNumbers D
+                            ON A.StockBatchNumberId = D.Id
+                            LEFT JOIN StockGroups E
+                            ON E.Id = B.GroupId
+                            WHERE A.StockId LIKE '%%'
+                            AND A.StockAssemblyId IN (SELECT Id FROM StockAssembly WHERE AssemblyCode like '%%')";
+                ////var p = new DynamicParameters();
+                ////p.Add("@DocumentCode", filter.AssemblyCode);
+                ////p.Add("@StockId", filter.StockId);
+                var data = await con.QueryAsync<MATERIALCONSUMPTIONRESULT>(query2, commandType: CommandType.Text);
+                return data;
+            }
+        }
+
         public async Task<List<CUSTOMERSTATEMENTRESULT>> GenerateCustomerStatement(CUSTOMERSTATEMENTFILTER filter)
         {
             using (IDbConnection con = new SqlConnection(QNEConnectionString.ChooseConnection(filter.CompanyCode)))
@@ -336,6 +388,7 @@ namespace DataAccessLibrary.Models.QneServices
                 return res;
             }
         }
+        
         public async Task<IEnumerable<STOCKLEDGERINQUIRYRESULT>> GenerateStockLedgerInq(STOCKLEDGERINQUIRYFILTER filter)
         {
             using (IDbConnection con = new SqlConnection(QNEConnectionString.ChooseConnection(filter.CompanyCode)))
@@ -383,6 +436,185 @@ namespace DataAccessLibrary.Models.QneServices
                 //return model.ToList();
             }
         }
+
+        public async Task<List<INVOICEMATCHLISTING>> GenerateInvoiceMatchListing(INVOICEMATCHLISTINGFILTER filter)
+        {
+            List<INVOICEMATCHLISTING> InvoiceMatchListing = new List<INVOICEMATCHLISTING>();
+            using IDbConnection con = new SqlConnection(QNEConnectionString.ChooseConnection(filter.CompanyCode));
+
+            string sql = @"SELECT
+                        INV.InvoiceCode,
+                        INV.InvoiceDate,
+                        INV.ReferenceNo,
+                        DEBT.CompanyName AS DEBTORNAME,
+                        CUR.CurrencyCode,
+                        INV.TotalAmountLocal,
+                        SALES.StaffCode AS SALESPERSONCODE,
+                        AREA.AreaCode AS DEBTORAREACODE,
+                        DEBTORCAT.CategoryCode AS DEBTORCATEGORYCODE
+                        FROM Invoices INV
+                        INNER JOIN Debtors DEBT
+                        ON INV.DebtorId = DEBT.Id
+                        LEFT JOIN Currencies CUR
+                        ON CUR.Id = INV.CurrencyId
+                        LEFT JOIN SalesPersons SALES
+                        ON SALES.Id = INV.SalesPersonId
+                        LEFT JOIN Areas AREA
+                        ON AREA.Id = DEBT.AreaId
+                        LEFT JOIN DebtorCategory DEBTORCAT
+                        ON DEBTORCAT.Id = DEBT.CategoryId
+                        WHERE INV.IsCancelled <> 0 AND 
+                        INV.DebtorId LIKE @DEBTORCODE
+                        AND INV.SalesPersonId LIKE @SALESPERSONCODE
+                        AND DEBT.AreaId LIKE @AREACODE
+                        AND DEBT.CategoryId LIKE @DEBTORCATID
+                        AND INV.InvoiceDate BETWEEN @DATEFROM AND @DATETO
+                        ORDER BY INV.InvoiceCode";
+            var fromDate = filter.DateFrom == null ? Convert.ToDateTime("1900-01-01") : filter.DateFrom;
+            var toDate = filter.DateTo == null ? DateTime.Now : filter.DateTo;
+            var p = new DynamicParameters();
+            p.Add("@DEBTORCODE", filter.DebtortId);
+            p.Add("@SALESPERSONCODE", filter.SalesPersonId);
+            p.Add("@AREACODE", filter.AreaId);
+            p.Add("@DEBTORCATID", filter.DebtorCategoryId);
+            p.Add("@DATEFROM", fromDate);
+            p.Add("@DATETO", toDate);
+            var data = await con.QueryAsync<INVOICEMATCHLISTING>(sql, p);
+
+            var InvoiceForMatching = data.ToList();
+            string SQL_INVOICEMATCH_QUERY = @"SELECT 
+                            ARM.PayForCode AS InvNo,
+                            ARM.ARCode AS DocNo,
+                            CAST('OR' AS varchar(20)) AS PayForType,
+                            ARR.ClearedDate AS DocDate,
+                            ARR.Description,
+                            ARR.TotalAmount AS OrAmt
+                            FROM ARMatched ARM
+                            JOIN Receipts ARR ON
+                            ARR.ReceiptCode = ARM.ARCode
+                            WHERE
+                            PayForType = 'INV'
+                            AND Amount <> 0
+                            AND ARM.PayForCode = @INVOICECODE
+                            UNION
+                            SELECT
+                            ARM.PayForCode AS InvNo,
+                            ARM.ARCode AS DocNo,
+                            CAST('CN' AS varchar(20)) AS PayForType,
+                            ARCN.CNDate AS DocDate,
+                            ARCN.Description,
+                            ARCN.TotalAmount AS OrAmt
+                            FROM ARMatched ARM
+                            JOIN ARCN 
+                            ON ARCN.CNCode = ARM.ARCode
+                            WHERE PayForType = 'INV'
+                            AND Amount <> 0
+                            AND ARM.PayForCode = @INVOICECODE
+                            UNION
+                            SELECT 
+                            ARM.PayForCode AS InvNo,
+                            ARM.ARCode AS DocNo,
+                            CAST('CN' AS varchar(20)) AS PayForType,
+                            J.JournalDate AS DocDate,
+                            JD.Description,
+                            JD.Credit AS OrAmt
+                            FROM ARMatched ARM
+                            JOIN Journals J
+                            ON J.JournalCode = ARM.ARCode
+                            JOIN JournalDetails JD
+                            ON JD.JournalId = J.Id
+                            WHERE
+                            PayForType = 'INV'
+                            AND Amount <> 0
+                            AND JD.Pos = ARM.OptimisticLockField
+                            AND ARM.PayForCode = @INVOICECODE";
+
+            for (int i = 0; i < InvoiceForMatching.Count; i++)
+            {
+                var INV = InvoiceForMatching[i];
+                string INVOICECODE = InvoiceForMatching[i].INVOICECODE;
+                var param = new DynamicParameters();
+                param.Add("@INVOICECODE", INVOICECODE);
+                var reader = con.ExecuteReader(SQL_INVOICEMATCH_QUERY, param);
+
+                while (reader.Read())
+                {
+                    INV.matchedDetailList.Add(new MATCHEDDETAILS()
+                    {
+                        DOCDATE = !String.IsNullOrEmpty(reader["DOCDATE"].ToString().Trim()) ? Convert.ToDateTime(reader["DOCDATE"].ToString().Trim()) : (DateTime?)null,
+                        DOCNO = reader["DOCNO"].ToString().Trim(),
+                        AMOUNT = Convert.ToDouble(reader["AMOUNT"].ToString().Trim())
+                    });
+                }
+
+                double matchedAmountTotal = 0;
+                if (INV.matchedDetailList.Count == 0)
+                {
+
+
+                    DateTime invoiceDate = Convert.ToDateTime(INV.INVOICEDATE);
+                    DateTime dateToday = Convert.ToDateTime(DateTime.Now.ToShortDateString());
+
+                    var days = Convert.ToInt32(dateToday.Subtract(invoiceDate).TotalDays);
+
+
+                    INV.AGING = days;
+                }
+                else
+                {
+                    foreach (var m in INV.matchedDetailList)
+                    {
+                        DateTime invoiceDate = Convert.ToDateTime(INV.INVOICEDATE);
+                        DateTime matchedDate = Convert.ToDateTime(m.DOCDATE);
+
+                        var days = Convert.ToInt32(matchedDate.Subtract(invoiceDate).TotalDays);
+
+
+                        m.AGING = days;
+                        matchedAmountTotal += m.AMOUNT;
+                    }
+
+                }
+                INV.BALANCE = INV.LOCALTOTALAMOUNT - matchedAmountTotal;
+
+            }
+                return InvoiceMatchListing;
+        }
+
+        public async Task<List<DEPARTMENTLEDGERRESULT>> GenerateDepartmentLedger(DEPARTMENTLEDGERFILTER filter)
+        {
+            using IDbConnection con = new SqlConnection(QNEConnectionString.ChooseConnection(filter.CompanyCode));
+            List<DEPARTMENTLEDGERRESULT> result = new List<DEPARTMENTLEDGERRESULT>();
+            if (filter.DepartmentAccountCodes.Count > 0)
+            {
+                if (filter.GLAccountCodes.Count > 0)
+                {
+                    string sql = @"SELECT C.AccountCode,A.TransactionDate,A.GLAccountCode,A.GLAccountName,A.DocumentCode,A.Description,A.Balance,A.ReferenceNo,A.JournalType FROM VW_GLTransactions A
+                        INNER JOIN GLAccounts B
+                        ON A.GLAccountCode = B.GLAccountCode
+                        INNER JOIN Accounts C
+                        ON C.Id = B.AccountId
+                        WHERE A.GLAccountCode IN @gls";
+                    string[] GLAccountCodes = filter.GLAccountCodes.ToArray();
+                    var res = await con.QueryAsync<DEPARTMENTLEDGERRESULT>(sql, new { gls = GLAccountCodes });
+                    return res.ToList();
+                }
+                else
+                {
+                    string sql = @"SELECT C.AccountCode,A.TransactionDate,A.GLAccountCode,A.GLAccountName,A.DocumentCode,A.Description,A.Balance,A.ReferenceNo,A.JournalType FROM VW_GLTransactions A
+                        INNER JOIN GLAccounts B
+                        ON A.GLAccountCode = B.GLAccountCode
+                        INNER JOIN Accounts C
+                        ON C.Id = B.AccountId
+                        WHERE C.AccountCode IN @gls";
+                    string[] DepartmentAccountCodes = filter.DepartmentAccountCodes.ToArray();
+                    var res = await con.QueryAsync<DEPARTMENTLEDGERRESULT>(sql, new { gls = DepartmentAccountCodes });
+                    return res.ToList();
+                }
+            }
+            return result;
+        }
+
         //public async Task<IEnumerable<STOCKLEDGERWITHBATCHRESULT>> GenerateStockLedgerWBatch(STOCKLEDGERWITHBATCHFILTER filter)
         //{
         //    using (IDbConnection con = new SqlConnection(QNEConnectionString.ChooseConnection(filter.CompanyCode)))

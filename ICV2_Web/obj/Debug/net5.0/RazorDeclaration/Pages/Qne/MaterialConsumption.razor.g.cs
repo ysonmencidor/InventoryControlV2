@@ -167,13 +167,6 @@ using Blazorise.Icons;
 #line hidden
 #nullable disable
 #nullable restore
-#line 23 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
-using Blazorise.Sidebar;
-
-#line default
-#line hidden
-#nullable disable
-#nullable restore
 #line 24 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
 using ICV2_Web.Services;
 
@@ -187,14 +180,976 @@ using NEvaldas.Blazor.Select2;
 #line default
 #line hidden
 #nullable disable
+#nullable restore
+#line 2 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\MaterialConsumption.razor"
+using System.Text.Json;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 3 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\MaterialConsumption.razor"
+using System.IO;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 4 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\MaterialConsumption.razor"
+using ClosedXML.Excel;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 5 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\MaterialConsumption.razor"
+using ICV2_Web.JSHelper;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 6 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\MaterialConsumption.razor"
+           [Authorize(Roles = "Administrator,User")]
+
+#line default
+#line hidden
+#nullable disable
     [Microsoft.AspNetCore.Components.RouteAttribute("/MaterialConsumption")]
-    public partial class MaterialConsumption : Microsoft.AspNetCore.Components.ComponentBase
+    public partial class MaterialConsumption : Microsoft.AspNetCore.Components.ComponentBase, IDisposable
     {
         #pragma warning disable 1998
         protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder __builder)
         {
         }
         #pragma warning restore 1998
+#nullable restore
+#line 74 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\MaterialConsumption.razor"
+       
+
+    //IJSObjectReference module;
+
+    MATERIALCONSUMPTIONFILTER formModel = new();
+    //private bool Submited = false;
+    private List<Stocks> stocks { get; set; } = new List<Stocks>();
+    private List<StockAssembly> stockAssemblies { get; set; } = new List<StockAssembly>();
+    private IEnumerable<StockLocations> Location { get; set; }
+    //private IEnumerable<BATCHNOBALANCEDETAILSRESULT> result { get; set; }
+    List<BATCHNOBALANCEDETAILSRESULT> Result = new List<BATCHNOBALANCEDETAILSRESULT>();
+    private List<Company> companies { get; set; }
+    private string CompCode { get; set; }
+
+    private async Task StCodeOnchange(ChangeEventArgs e)
+    {
+        if (e.Value.ToString() != "%%")
+        {
+            Console.WriteLine(e.Value.ToString());
+
+            string stockId = e.Value.ToString();
+
+            var httpRequest = await http.GetAsync($"api/Qne/GetStockAssemblyCodes?companyCode={CompCode}&StockId={stockId}");
+
+            if (httpRequest.IsSuccessStatusCode)
+            {
+                var responseString = await httpRequest.Content.ReadAsStringAsync();
+
+                stockAssemblies = JsonSerializer.Deserialize<List<StockAssembly>>(responseString,
+                 new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+            }
+        }
+        else if(e.Value.ToString() == "%%")
+        {
+            stockAssemblies.Clear();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState.CompanyReady())
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        CompCode = AppState.selectedCompanyCode;
+        companies = await http.GetFromJsonAsync<List<Company>>("api/Navigation/GetCompany");
+        stocks = await http.GetFromJsonAsync<List<Stocks>>("api/Qne/GetStockAssembly?companyCode=" + CompCode);
+    }
+    private async Task GenerateReport()
+    {
+        formModel.CompanyCode = AppState.selectedCompanyCode;
+
+        var httpRequest = await http.PostAsJsonAsync("api/Report/GenerateMaterialConsumptions", formModel);
+
+        if (httpRequest.IsSuccessStatusCode)
+        {
+            var responseString = await httpRequest.Content.ReadAsStringAsync();
+
+            //Console.WriteLine(responseString);
+
+            //Console.WriteLine(responseString);
+            var data = JsonSerializer.Deserialize<List<MATERIALCONSUMPTIONRESULT>>(responseString,
+              new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+
+            await GenerateExcel(data);
+        }
+    }
+
+    private async Task GenerateExcel(List<MATERIALCONSUMPTIONRESULT> data)
+    {
+        string company_name = companies.Where(y => y.Code == formModel.CompanyCode).Select(x => x.Name).First();
+        using (XLWorkbook wb = new XLWorkbook())
+        {
+
+
+            string mbr_no = Convert.ToString(formModel.AssemblyCode).Trim();
+
+            //sql variables
+            string RETENTION_LOCATION_CODE = "FG - QA RETENTION";
+            string STABILITY_LOCATION_CODE = "FG-QA STABILITY";
+
+            //report variables
+            string PRODUCTNAME = "";
+
+            DateTime MFG_DATE = new DateTime();
+            DateTime EXP_DATE = new DateTime();
+            string BATCH_NO = mbr_no;
+            double RETENTION_QTY = 0;
+            string RETENTION_UOM = "";
+            double STABILITY_QTY = 0;
+            string STABILITY_UOM = "";
+            double FGP_QTY = 0;
+            string FGP_UOM = "";
+
+
+            string queryString = "";
+            string reportFileName = "";
+            List<MATERIALCONSUMPTIONRESULT> rmList = new List<MATERIALCONSUMPTIONRESULT>();
+            List<MATERIALCONSUMPTIONRESULT> pmList = new List<MATERIALCONSUMPTIONRESULT>();
+            List<MATERIALCONSUMPTIONRESULT> fgList = new List<MATERIALCONSUMPTIONRESULT>();
+
+            reportFileName = "_MATERIAL_CONSUMPTION";
+
+
+            foreach (var item in data)
+            {
+                //if (String.IsNullOrEmpty(PRODUCTNAME))
+                //{
+
+                //    PRODUCTNAME = fbDataReader["PRODUCTNAME"].ToString().Trim();
+                //    if (!String.IsNullOrEmpty(fbDataReader["BNMANUFACTURINGDATE"].ToString()))
+                //    {
+                //        MFG_DATE = Convert.ToDateTime(fbDataReader["BNMANUFACTURINGDATE"].ToString().Trim());
+                //    }
+                //    if (!String.IsNullOrEmpty(fbDataReader["BATCHNOEXPIRYDATE"].ToString()))
+                //    {
+                //        EXP_DATE = Convert.ToDateTime(fbDataReader["BATCHNOEXPIRYDATE"].ToString().Trim());
+                //    }
+                //    if (!String.IsNullOrEmpty(fbDataReader["RETENTION"].ToString()))
+                //    {
+                //        RETENTION_QTY = Convert.ToDouble(fbDataReader["RETENTION"].ToString().Trim());
+                //    }
+                //    if (!String.IsNullOrEmpty(fbDataReader["RETENTION_UOM"].ToString()))
+                //    {
+                //        RETENTION_UOM = fbDataReader["RETENTION_UOM"].ToString().Trim();
+                //    }
+                //    if (!String.IsNullOrEmpty(fbDataReader["STABL"].ToString()))
+                //    {
+                //        STABILITY_QTY = Convert.ToDouble(fbDataReader["STABL"].ToString().Trim());
+                //    }
+                //    if (!String.IsNullOrEmpty(fbDataReader["STABL_UOM"].ToString()))
+                //    {
+                //        STABILITY_UOM = fbDataReader["STABL_UOM"].ToString().Trim();
+                //    }
+                //    if (!String.IsNullOrEmpty(fbDataReader["FG_QTY"].ToString()))
+                //    {
+                //        FGP_QTY = Convert.ToDouble(fbDataReader["FG_QTY"].ToString().Trim());
+                //    }
+                //    if (!String.IsNullOrEmpty(fbDataReader["FG_UOM"].ToString()))
+                //    {
+                //        FGP_UOM = fbDataReader["FG_UOM"].ToString().Trim();
+                //    }
+
+                //}
+
+
+                if (String.Equals(item.GroupCode, "RM"))
+                {
+
+                    rmList.Add(new MATERIALCONSUMPTIONRESULT
+                    {
+                        BatchNo = item.BatchNo,
+                        STOCKCODE = item.STOCKCODE,
+                        DESCRIPTION = item.DESCRIPTION,
+                        QTY = item.QTY,
+                        UOM = item.UOM,
+                        COST = item.COST,
+                        AMOUNT = item.AMOUNT,
+                        ASSEMBLYCODE = item.ASSEMBLYCODE,
+                        GroupCode = item.GroupCode
+                    });
+                }
+                else if (String.Equals(item.GroupCode, "FG"))
+                {
+                    fgList.Add(new MATERIALCONSUMPTIONRESULT
+                    {
+                        BatchNo = item.BatchNo,
+                        STOCKCODE = item.STOCKCODE,
+                        DESCRIPTION = item.DESCRIPTION,
+                        QTY = item.QTY,
+                        UOM = item.UOM,
+                        COST = item.COST,
+                        AMOUNT = item.AMOUNT,
+                        ASSEMBLYCODE = item.ASSEMBLYCODE,
+                        GroupCode = item.GroupCode
+                    });
+                }
+                else
+                {
+                    pmList.Add(new MATERIALCONSUMPTIONRESULT
+                    {
+                        BatchNo = item.BatchNo,
+                        STOCKCODE = item.STOCKCODE,
+                        DESCRIPTION = item.DESCRIPTION,
+                        QTY = item.QTY,
+                        UOM = item.UOM,
+                        COST = item.COST,
+                        AMOUNT = item.AMOUNT,
+                        ASSEMBLYCODE = item.ASSEMBLYCODE,
+                        GroupCode = item.GroupCode
+                    });
+                }
+
+
+
+            }
+
+            IXLWorksheet ws = wb.Worksheets.Add("MATERIAL CONSUMPTION");
+
+            //CELL VARIABLES
+            IXLAddress RM_TOTAL_CELL;
+            IXLAddress PM_TOTAL_CELL;
+            IXLAddress FGP_QTY_CELL;
+            IXLAddress RETENTION_QTY_CELL;
+            IXLAddress STABILITY_QTY_CELL;
+            IXLAddress FG_AVAILABLE_FOR_SALE_CELL;
+            IXLAddress TOLL_FEE_CELL;
+
+            IXLAddress RM_COST_PER_BATCH;
+            IXLAddress PM_COST_PER_BATCH;
+            IXLAddress TOLL_FEE_PER_BATCH;
+            IXLAddress ASSAY_FEE;
+            IXLAddress RM_COST_PER_UNIT;
+            IXLAddress PM_COST_PER_UNIT;
+            IXLAddress TOLL_FEE_PER_UNIT;
+            IXLAddress TOTAL_PER_UNIT;
+            //HEADER
+            IXLCell cell = ws.Cell("A1").SetValue(company_name);
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.Font.Bold = true;
+            cell = ws.Cell("A2").SetValue("MATERIAL CONSUMPTION REPORT");
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.Font.Bold = true;
+
+            //SUB HEADER
+            cell = ws.Cell("A4").SetValue("PRODUCT NAME:");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("B4").SetValue(PRODUCTNAME);
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("G4").SetValue("MBR NO:");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("H4").SetValue(BATCH_NO.ToString());
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("A5").SetValue("MFG DATE:");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("B5").SetValue(MFG_DATE.ToString("MMM-yyyy"));
+            cell.Style.Font.Bold = true;
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("G5").SetValue("EXP DATE:");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("H5").SetValue(EXP_DATE.ToString("MMM-yyyy"));
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+
+
+            //DETAIL - TITLE
+
+            cell = ws.Cell("A7").SetValue("CODE");
+            cell.Style.Font.Bold = true;
+            cell = ws.Cell("B7").SetValue("DESCRIPTION");
+            cell.Style.Font.Bold = true;
+            cell = ws.Cell("C7").SetValue("QTY");
+            cell.Style.Font.Bold = true;
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Right);
+            cell = ws.Cell("D7").SetValue("UOM");
+            cell.Style.Font.Bold = true;
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+            cell = ws.Cell("E7").SetValue("U.COST");
+            cell.Style.Font.Bold = true;
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Right);
+            cell = ws.Cell("F7").SetValue("AMOUNT");
+            cell.Style.Font.Bold = true;
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Right);
+            cell = ws.Cell("G7").SetValue("REF#");
+            cell.Style.Font.Bold = true;
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+            cell = ws.Cell("H7").SetValue("DATE ISSUED");
+            cell.Style.Font.Bold = true;
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Right);
+            cell = ws.Cell("I7").SetValue("BATCH NO");
+            cell.Style.Font.Bold = true;
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Right);
+
+            int rowNumber = 8;
+            int count = 1;
+            double rm_total = 0;
+            double pm_total = 0;
+            double fg_total = 0;
+            foreach (MATERIALCONSUMPTIONRESULT si in rmList)
+            {
+
+                cell = ws.Cell("A" + rowNumber).SetValue(si.STOCKCODE);
+                cell = ws.Cell("B" + rowNumber).SetValue(si.DESCRIPTION);
+                cell = ws.Cell("C" + rowNumber).SetValue(si.QTY);
+                cell.Style.NumberFormat.Format = "#,##0.0000";
+                cell = ws.Cell("D" + rowNumber).SetValue(si.UOM);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                if (si.COST > 0)
+                {
+                    cell = ws.Cell("E" + rowNumber).SetValue(si.COST);
+                    cell.Style.NumberFormat.Format = "#,##0.00000000";
+                }
+                else
+                {
+                    cell = ws.Cell("E" + rowNumber).SetValue("-");
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Right);
+                }
+
+                cell = ws.Cell("F" + rowNumber).SetValue(si.AMOUNT);
+                cell.Style.NumberFormat.Format = "#,##0.00";
+                //cell = ws.Cell("G" + rowNumber).SetValue(si.REFNO);
+                //cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                //cell = ws.Cell("H" + rowNumber).SetValue(si.DATEISSUED);
+                //cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Right);
+                cell = ws.Cell("I" + rowNumber).SetValue(si.BatchNo);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Right);
+                rowNumber++;
+                count++;
+                rm_total += si.AMOUNT;
+            }
+            //set last AMOUNT cell border
+            cell = ws.Cell("F" + (rowNumber - 1));
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+
+            cell = ws.Cell("A" + rowNumber).SetValue("Total Raw Materials Cost");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("F" + rowNumber).SetValue(rm_total);
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            RM_TOTAL_CELL = cell.Address;//get rm total cell address
+
+            rowNumber += 2;
+
+            foreach (MATERIALCONSUMPTIONRESULT si in pmList)
+            {
+
+                cell = ws.Cell("A" + rowNumber).SetValue(si.STOCKCODE);
+                cell = ws.Cell("B" + rowNumber).SetValue(si.DESCRIPTION);
+                cell = ws.Cell("C" + rowNumber).SetValue(si.QTY);
+                if ((si.QTY - Math.Truncate(si.QTY)) > 0)
+                {
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                }
+                else
+                {
+                    cell.Style.NumberFormat.Format = "#,##0";
+                }
+
+
+                cell = ws.Cell("D" + rowNumber).SetValue(si.UOM);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+
+                if (si.COST > 0)
+                {
+                    cell = ws.Cell("E" + rowNumber).SetValue(si.COST);
+                    cell.Style.NumberFormat.Format = "#,##0.00000000";
+                }
+                else
+                {
+                    cell = ws.Cell("E" + rowNumber).SetValue("-");
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Right);
+                }
+                cell = ws.Cell("F" + rowNumber).SetValue(si.AMOUNT);
+                cell.Style.NumberFormat.Format = "#,##0.00";
+                //cell = ws.Cell("G" + rowNumber).SetValue(si.REFNO);
+                //cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                //cell = ws.Cell("H" + rowNumber).SetValue(si.DATEISSUED);
+                //cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Right);
+                cell = ws.Cell("I" + rowNumber).SetValue(si.BatchNo);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Right);
+                rowNumber++;
+                count++;
+                pm_total += si.AMOUNT;
+            }
+
+            //set last AMOUNT cell border
+            cell = ws.Cell("F" + (rowNumber - 1));
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+
+            cell = ws.Cell("A" + rowNumber).SetValue("Total Packaging Materials Cost");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("F" + rowNumber).SetValue(pm_total);
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            PM_TOTAL_CELL = cell.Address;//get pm total cell address
+
+            rowNumber++;
+            rowNumber++;
+
+            foreach (MATERIALCONSUMPTIONRESULT si in fgList)
+            {
+
+                cell = ws.Cell("A" + rowNumber).SetValue(si.STOCKCODE);
+                cell = ws.Cell("B" + rowNumber).SetValue(si.DESCRIPTION);
+                cell = ws.Cell("C" + rowNumber).SetValue(si.QTY);
+                if ((si.QTY - Math.Truncate(si.QTY)) > 0)
+                {
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                }
+                else
+                {
+                    cell.Style.NumberFormat.Format = "#,##0";
+                }
+
+
+                cell = ws.Cell("D" + rowNumber).SetValue(si.UOM);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+
+                if (si.COST > 0)
+                {
+                    cell = ws.Cell("E" + rowNumber).SetValue(si.COST);
+                    cell.Style.NumberFormat.Format = "#,##0.00000000";
+                }
+                else
+                {
+                    cell = ws.Cell("E" + rowNumber).SetValue("-");
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Right);
+                }
+                cell = ws.Cell("F" + rowNumber).SetValue(si.AMOUNT);
+                cell.Style.NumberFormat.Format = "#,##0.00";
+                //cell = ws.Cell("G" + rowNumber).SetValue(si.REFNO);
+                //cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                //cell = ws.Cell("H" + rowNumber).SetValue(si.DATEISSUED);
+                //cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Right);
+                cell = ws.Cell("I" + rowNumber).SetValue(si.BatchNo);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Right);
+                rowNumber++;
+                count++;
+                fg_total += si.AMOUNT;
+            }
+            //set last AMOUNT cell border
+            cell = ws.Cell("F" + (rowNumber - 1));
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+
+            cell = ws.Cell("A" + rowNumber).SetValue("Total Finished Goods Cost");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("F" + rowNumber).SetValue(fg_total);
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            PM_TOTAL_CELL = cell.Address;//get pm total cell address
+
+            rowNumber++;
+            cell = ws.Cell("A" + (++rowNumber)).SetValue("FINISHED GOODS RECONCILIATION");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+
+            cell = ws.Cell("C" + (rowNumber)).SetValue("UOM");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+
+            cell = ws.Cell("D" + (rowNumber)).SetValue("SUMMARY");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("E" + (rowNumber)).SetValue("Per Batch");
+            cell.Style.Font.Bold = true;
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Right);
+            cell = ws.Cell("F" + (rowNumber)).SetValue("Per Unit");
+            cell.Style.Font.Bold = true;
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Right);
+
+
+            cell = ws.Cell("A" + (++rowNumber)).SetValue("Finished Goods Produce");
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("B" + (rowNumber)).SetValue(FGP_QTY);
+            cell.Style.Font.FontColor = XLColor.Blue;
+
+            cell.Style.NumberFormat.Format = "#,##0.000";
+            FGP_QTY_CELL = cell.Address;//get FGP_QTY cell address
+            cell = ws.Cell("C" + (rowNumber)).SetValue(FGP_UOM);
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("A" + (++rowNumber)).SetValue("Retention Sample");
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("B" + (rowNumber)).SetValue(RETENTION_QTY);
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.NumberFormat.Format = "#,##0.000";
+            RETENTION_QTY_CELL = cell.Address;//get RETENTION_QTY cell address
+            cell = ws.Cell("C" + (rowNumber)).SetValue(RETENTION_UOM);
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("A" + (++rowNumber)).SetValue("Stability Sample");
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("B" + (rowNumber)).SetValue(STABILITY_QTY);
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.NumberFormat.Format = "#,##0.000";
+            STABILITY_QTY_CELL = cell.Address;//get STABILITY_QTY_CELL cell address
+            cell = ws.Cell("C" + (rowNumber)).SetValue(STABILITY_UOM);
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("A" + (++rowNumber)).SetValue("Finished Goods Available for Sale");
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("B" + (rowNumber)).SetValue(FGP_QTY - (RETENTION_QTY + STABILITY_QTY));
+            cell.FormulaA1 = (FGP_QTY_CELL.ToString()) + "-(" + RETENTION_QTY_CELL.ToString() + "+" + STABILITY_QTY_CELL.ToString() + ")";
+            cell.Style.NumberFormat.Format = "#,##0.000";
+            FG_AVAILABLE_FOR_SALE_CELL = cell.Address;
+
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.NumberFormat.Format = "#,##0.000";
+            cell = ws.Cell("C" + (rowNumber)).SetValue(FGP_UOM);
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.NumberFormat.Format = "#,##0.000";
+            cell = ws.Cell("A" + (++rowNumber)).SetValue("Toll Fee Rate");
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("B" + (rowNumber)).SetValue(0);
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.NumberFormat.Format = "#,##0.000";
+            TOLL_FEE_CELL = cell.Address;
+
+            int newrownum = rowNumber - 4;
+            cell = ws.Cell("D" + (newrownum)).SetValue("Raw Materials Cost");
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("E" + (newrownum));
+            cell.FormulaA1 = RM_TOTAL_CELL.ToString();
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            RM_COST_PER_BATCH = cell.Address;
+            cell = ws.Cell("F" + (newrownum));
+            cell.FormulaA1 = RM_COST_PER_BATCH.ToString() + "/" + FG_AVAILABLE_FOR_SALE_CELL.ToString();
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.FontColor = XLColor.Blue;
+            RM_COST_PER_UNIT = cell.Address;
+
+            cell = ws.Cell("D" + (++newrownum)).SetValue("Packaging Materials Cost");
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("E" + (newrownum));
+            cell.FormulaA1 = PM_TOTAL_CELL.ColumnLetter + PM_TOTAL_CELL.RowNumber;
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            PM_COST_PER_BATCH = cell.Address;
+            cell = ws.Cell("F" + (newrownum));
+            cell.FormulaA1 = PM_COST_PER_BATCH.ToString() + "/" + FG_AVAILABLE_FOR_SALE_CELL.ToString();
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.FontColor = XLColor.Blue;
+            PM_COST_PER_UNIT = cell.Address;
+
+
+            cell = ws.Cell("D" + (++newrownum)).SetValue("Assay Fee");
+            cell.Style.Font.FontColor = XLColor.Blue;
+
+            cell = ws.Cell("E" + (newrownum)).SetValue(0);
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.FontColor = XLColor.Blue;
+            ASSAY_FEE = cell.Address;
+
+            cell = ws.Cell("F" + (newrownum));
+            cell.FormulaA1 = ASSAY_FEE.ToString() + "/" + FG_AVAILABLE_FOR_SALE_CELL.ToString();
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.FontColor = XLColor.Blue;
+
+
+            cell = ws.Cell("D" + (++newrownum)).SetValue("Toll Fee");
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell = ws.Cell("E" + (newrownum));
+            cell.FormulaA1 = TOLL_FEE_CELL.ToString() + "*" + FGP_QTY_CELL.ToString();
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            TOLL_FEE_PER_BATCH = cell.Address;
+            cell = ws.Cell("F" + (+newrownum));
+            cell.FormulaA1 = TOLL_FEE_PER_BATCH.ToString() + "/" + FG_AVAILABLE_FOR_SALE_CELL.ToString();
+            cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.FontColor = XLColor.Blue;
+            TOLL_FEE_PER_UNIT = cell.Address;
+
+
+
+            cell = ws.Cell("D" + (++newrownum)).SetValue("TOTAL COST");
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.Font.Bold = true;
+            cell = ws.Cell("E" + (newrownum));
+            cell.FormulaA1 = "SUM(" + RM_COST_PER_BATCH.ToString() + ":" + TOLL_FEE_PER_BATCH.ToString() + ")";
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell = ws.Cell("F" + (newrownum));
+            cell.FormulaA1 = "SUM(" + RM_COST_PER_UNIT.ToString() + ":" + TOLL_FEE_PER_UNIT.ToString() + ")";
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            TOTAL_PER_UNIT = cell.Address;
+
+            rowNumber++;
+            cell = ws.Cell("A" + (++rowNumber)).SetValue("Desired Gross Profit");
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("C" + (rowNumber));
+            cell.FormulaA1 = "((" + TOTAL_PER_UNIT.ToString() + "/0.65)- " + TOTAL_PER_UNIT.ToString() + ")/(" + TOTAL_PER_UNIT.ToString() + "/0.65)";
+            cell.Style.NumberFormat.Format = "0.0%";
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("D" + (rowNumber)).SetValue("10+1");
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+            cell.Style.Font.FontColor = XLColor.Red;
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("E" + (rowNumber)).SetValue("10+2");
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+            cell.Style.Font.FontColor = XLColor.Red;
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("F" + (rowNumber)).SetValue("10+3");
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+            cell.Style.Font.FontColor = XLColor.Red;
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("G" + (rowNumber)).SetValue("10+4");
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+            cell.Style.Font.FontColor = XLColor.Red;
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("H" + (rowNumber)).SetValue("10+5");
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+            cell.Style.Font.FontColor = XLColor.Red;
+            cell.Style.Font.Bold = true;
+
+
+
+            IXLAddress WITHVAT;
+            IXLAddress DVAT;
+            IXLAddress EVAT;
+            IXLAddress FVAT;
+            IXLAddress GVAT;
+            IXLAddress HVAT;
+
+
+
+            IXLAddress CurrentWITHVAT;
+            IXLAddress CurrentDVAT;
+            IXLAddress CurrentEVAT;
+            IXLAddress CurrentFVAT;
+            IXLAddress CurrentGVAT;
+            IXLAddress CurrentHVAT;
+
+            cell = ws.Cell("A" + (++rowNumber)).SetValue("SRP (to get 35% GP) - VAT Inclusive");
+            cell.Style.Font.FontColor = XLColor.Red;
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("C" + (rowNumber));
+            cell.FormulaA1 = "(((" + TOTAL_PER_UNIT.ToString() + "/0.65)*15/10)*1.12)";
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            WITHVAT = cell.Address;
+
+
+            cell = ws.Cell("D" + (rowNumber));
+            cell.FormulaA1 = WITHVAT.ToString() + " * 10 / 11";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            DVAT = cell.Address;
+
+            cell = ws.Cell("E" + (rowNumber));
+            cell.FormulaA1 = WITHVAT.ToString() + " * 10 / 12";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            EVAT = cell.Address;
+
+            cell = ws.Cell("F" + (rowNumber));
+            cell.FormulaA1 = WITHVAT.ToString() + " * 10 / 13";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            FVAT = cell.Address;
+
+            cell = ws.Cell("G" + (rowNumber));
+            cell.FormulaA1 = WITHVAT.ToString() + " * 10 / 14";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            GVAT = cell.Address;
+
+            cell = ws.Cell("H" + (rowNumber));
+            cell.FormulaA1 = WITHVAT.ToString() + " * 10 / 15";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            HVAT = cell.Address;
+
+
+
+
+            //
+            cell = ws.Cell("A" + (++rowNumber)).SetValue("SRP(to get 35 % GP) - VAT Exclusive");
+            cell.Style.Font.FontColor = XLColor.Red;
+            cell.Style.Font.Bold = true;
+
+            IXLAddress CVAT35EXCLUSIVE;
+            cell = ws.Cell("C" + (rowNumber));
+            cell.FormulaA1 = WITHVAT.ToString() + " / 1.12";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            CVAT35EXCLUSIVE = cell.Address;
+
+            cell = ws.Cell("D" + (rowNumber));
+            cell.FormulaA1 = DVAT.ToString() + " / 1.12";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+
+
+            cell = ws.Cell("E" + (rowNumber));
+            cell.FormulaA1 = EVAT.ToString() + " / 1.12";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+
+
+            cell = ws.Cell("F" + (rowNumber));
+            cell.FormulaA1 = FVAT.ToString() + " / 1.12";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+
+
+            cell = ws.Cell("G" + (rowNumber));
+            cell.FormulaA1 = GVAT.ToString() + " / 1.12";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+
+            IXLAddress H35EXCLUSIVE;
+            cell = ws.Cell("H" + (rowNumber));
+            cell.FormulaA1 = HVAT.ToString() + " / 1.12";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            H35EXCLUSIVE = cell.Address;
+
+            cell = ws.Cell("I" + (rowNumber));
+            cell.FormulaA1 = "(" + H35EXCLUSIVE.ToString() + "-" + TOTAL_PER_UNIT.ToString() + ")/" + H35EXCLUSIVE.ToString();
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.Font.Bold = true;
+
+            rowNumber++;
+            cell = ws.Cell("D" + (++rowNumber)).SetValue("Existing Pricing Logistics");
+            var range = ws.Range("D" + rowNumber + ":H" + rowNumber + "");
+            range.Merge().Style.Font.SetBold().Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+
+            cell = ws.Cell("A" + (++rowNumber)).SetValue("CURRENT SRP - VAT INCLUSIVE");
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("C" + (rowNumber)).SetValue(0);
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            CurrentWITHVAT = cell.Address;
+
+
+            cell = ws.Cell("D" + (rowNumber));
+            cell.FormulaA1 = CurrentWITHVAT.ToString() + " * 10 / 11";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            CurrentDVAT = cell.Address;
+
+            cell = ws.Cell("E" + (rowNumber));
+            cell.FormulaA1 = CurrentWITHVAT.ToString() + " * 10 / 12";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            CurrentEVAT = cell.Address;
+
+            cell = ws.Cell("F" + (rowNumber));
+            cell.FormulaA1 = CurrentWITHVAT.ToString() + " * 10 / 13";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            CurrentFVAT = cell.Address;
+
+            cell = ws.Cell("G" + (rowNumber));
+            cell.FormulaA1 = CurrentWITHVAT.ToString() + " * 10 / 14";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            CurrentGVAT = cell.Address;
+
+            cell = ws.Cell("H" + (rowNumber));
+            cell.FormulaA1 = CurrentWITHVAT.ToString() + " * 10 / 15";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            CurrentHVAT = cell.Address;
+
+            cell = ws.Cell("A" + (++rowNumber)).SetValue("CURRENT SRP - VAT EXCLUSIVE");
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.Font.Bold = true;
+
+            IXLAddress CURRENTVATEXCLUSIVE;
+
+            cell = ws.Cell("C" + (rowNumber));
+            cell.FormulaA1 = CurrentWITHVAT.ToString() + " / 1.12";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            CURRENTVATEXCLUSIVE = cell.Address;
+
+            cell = ws.Cell("D" + (rowNumber));
+            cell.FormulaA1 = CurrentDVAT.ToString() + " / 1.12";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+
+
+            cell = ws.Cell("E" + (rowNumber));
+            cell.FormulaA1 = CurrentEVAT.ToString() + " / 1.12";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+
+
+            cell = ws.Cell("F" + (rowNumber));
+            cell.FormulaA1 = CurrentFVAT.ToString() + " / 1.12";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+
+
+            cell = ws.Cell("G" + (rowNumber));
+            cell.FormulaA1 = CurrentGVAT.ToString() + " / 1.12";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+
+            IXLAddress HCURRENTEXCLUSIVE;
+            cell = ws.Cell("H" + (rowNumber));
+            cell.FormulaA1 = CurrentHVAT.ToString() + " / 1.12";
+            cell.Style.Font.Bold = true;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            HCURRENTEXCLUSIVE = cell.Address;
+
+            cell = ws.Cell("I" + (rowNumber));
+            cell.FormulaA1 = "(" + HCURRENTEXCLUSIVE.ToString() + "-" + TOTAL_PER_UNIT.ToString() + ")/" + HCURRENTEXCLUSIVE.ToString();
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.NumberFormat.Format = "#,##0.00";
+            cell.Style.Font.Bold = true;
+
+            cell = ws.Cell("A" + (++rowNumber)).SetValue("Percentage Margin Under Present Pricing Logistics");
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = XLColor.Blue;
+
+            cell = ws.Cell("C" + (rowNumber));
+            cell.FormulaA1 = "(((" + CurrentWITHVAT.ToString() + "*10/15)/1.12-" + TOTAL_PER_UNIT.ToString() + ")/((" + CurrentWITHVAT.ToString() + "*10/15)/1.12))";
+            cell.Style.NumberFormat.Format = "0.0%";
+            cell.Style.Font.FontColor = XLColor.Blue;
+            cell.Style.Font.Bold = true;
+            rowNumber++;
+
+            cell = ws.Cell("A" + (++rowNumber)).SetValue("Recommended % Price Increase from Present Pricing Logistics");
+            var range2 = ws.Range("A" + rowNumber + ":B" + rowNumber + "");
+            range2.Merge().Style.Font.SetBold().Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+            cell.Style.Font.FontColor = XLColor.Red;
+            //Recommended % Price Increase from Present Pricing Logistics
+
+            cell = ws.Cell("C" + (rowNumber));
+            cell.FormulaA1 = "(" + CVAT35EXCLUSIVE.ToString() + "/" + CURRENTVATEXCLUSIVE.ToString() + ")-1";
+            cell.Style.NumberFormat.Format = "0.0%";
+            cell.Style.Font.FontColor = XLColor.Red;
+            cell.Style.Font.Bold = true;
+
+
+
+            rowNumber += 2;
+            cell = ws.Cell("A" + (++rowNumber)).SetValue("Prepared By:");
+            cell.Style.Font.FontColor = XLColor.Blue;
+
+
+            cell = ws.Cell("C" + (rowNumber)).SetValue("Checked By:");
+            cell.Style.Font.FontColor = XLColor.Blue;
+
+
+            cell = ws.Cell("F" + (rowNumber)).SetValue("Approved By:");
+            cell.Style.Font.FontColor = XLColor.Blue;
+
+
+
+
+
+            //COLUMN WIDTH ADJUSTMENTS
+            ws.Column("A").Width = 16;
+            ws.Column("B").Width = 32;
+            ws.Column("C").Width = 16;
+            ws.Column("D").Width = 11;
+            ws.Column("E").Width = 14;
+            ws.Column("F").Width = 14;
+            ws.Column("G").Width = 20;
+            ws.Column("H").Width = 14;
+            ws.Column("I").Width = 14;
+
+            if (wb.Worksheets.Count > 0)
+            {
+                MemoryStream ms = GetStream(wb);
+                byte[] bytes = ms.ToArray();
+                ms.Close();
+
+                await js.SaveAsFileAsync("BATCHBYBALANCEDEVAILS", bytes, "application/vnd.ms-excel");
+            }
+            else
+            {
+                await js.InvokeVoidAsync("alert", "No record found.");
+            }
+
+
+        }
+
+    }
+    private MemoryStream GetStream(XLWorkbook excelWorkbook)
+    {
+        MemoryStream fs = new MemoryStream();
+        excelWorkbook.SaveAs(fs);
+        fs.Position = 0;
+        return fs;
+    }
+    private async Task AppState_StateChanged(ComponentBase Source, string Property)
+    {
+        if (Source != this)
+        {
+            if (AppState.CompanyReady())
+            {
+                await LoadData();
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    protected override void OnInitialized()
+    {
+        AppState.StateChanged += async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+    void IDisposable.Dispose()
+    {
+        AppState.StateChanged -= async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+
+#line default
+#line hidden
+#nullable disable
+        [global::Microsoft.AspNetCore.Components.InjectAttribute] private IJSRuntime js { get; set; }
+        [global::Microsoft.AspNetCore.Components.InjectAttribute] private HttpClient http { get; set; }
+        [global::Microsoft.AspNetCore.Components.InjectAttribute] private AppState AppState { get; set; }
     }
 }
 #pragma warning restore 1591

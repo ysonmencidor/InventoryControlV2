@@ -167,13 +167,6 @@ using Blazorise.Icons;
 #line hidden
 #nullable disable
 #nullable restore
-#line 23 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
-using Blazorise.Sidebar;
-
-#line default
-#line hidden
-#nullable disable
-#nullable restore
 #line 24 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
 using ICV2_Web.Services;
 
@@ -199,6 +192,7 @@ using NEvaldas.Blazor.Select2;
        
 
     private IEnumerable<Company> companies;
+
     protected override async Task OnInitializedAsync()
     {
         companies = await http.GetFromJsonAsync<IEnumerable<Company>>("api/Navigation/GetCompany");

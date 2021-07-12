@@ -1,0 +1,136 @@
+﻿
+<select @bind="optionSelected2" size="@displaySize2" class="form-control">
+    @if (DataOptions2 != null)
+    {
+        foreach (var item in DataOptions2)
+        {
+            <option class="px-2" @onmousedown="@(async (em) => CurrentMouseEvent2 = em)" value="@item.GLAccountCode"
+                    style="@(Value2.Contains(item.GLAccountCode) ? "background-color:lightgray;" : "")">
+                @item.Description
+            </option>
+        }
+    }
+</select>
+<div class="d-flex justify-content-center mt-1">
+    <Tooltip Text="Select All" Placement="Placement.Bottom">
+        <button type="button" class="btn btn-sm btn-secondary mr-1" @onclick="selectAll">Select All</button>
+    </Tooltip>
+    <Tooltip Text="Clear Selection" Placement="Placement.Bottom">
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="clearlist">Clear</button>
+        </Tooltip>
+</div>
+
+@code {
+
+    [Parameter] public List<GLAccounts> DataOptions2 { get; set; }
+    [Parameter] public int displaySize2 { get; set; } = 10;
+    [Parameter] public List<string> Value2 { get; set; }
+    [Parameter] public EventCallback<List<string>> ValueChanged2 { get; set; }
+
+    private MouseEventArgs CurrentMouseEvent2 = null;
+
+    private string _optionsSelected2;
+
+    private string optionSelected2
+    {
+        get { return _optionsSelected2; }
+        set
+        {
+            if (optionSelected2 != null)
+                OnOptionSelected2(value);
+            _optionsSelected2 = "";
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        optionSelected2 = null;
+        Value2 = new List<string>() { "Empty" };
+    }
+    private void OnOptionSelected2(string value)
+    {
+        bool prior = false;
+        int listone = 0;
+        int listtwo = 0;
+        int f1 = 0;
+        int f2 = 0;
+
+        if (CurrentMouseEvent2.ShiftKey && !value.Contains("Empty"))
+        {
+            for (int i = 0; i < DataOptions2.Count; i++)
+            {
+                if (value == DataOptions2[i].GLAccountCode)
+                {
+                    listone = i;
+                }
+            }
+            foreach (var item in Value2)
+            {
+                for (int i = 0; i < DataOptions2.Count; i++)
+                {
+                    if (item == DataOptions2[i].GLAccountCode)
+                    {
+                        if (i < listone)
+                        {
+                            prior = true;
+                            listtwo = i;
+                        }
+                        if (i > listtwo && prior == false)
+                        {
+                            listtwo = i;
+                        }
+                    }
+                }
+            }
+            if (!prior)
+            {
+                f1 = listone; f2 = listtwo;
+            }
+            else
+            {
+                f1 = listtwo; f2 = listone;
+            }
+            for (int i = f1; i <= f2; i++)
+            {
+                string itemToAdd = DataOptions2[i].GLAccountCode;
+                if (!Value2.Contains(itemToAdd))
+                {
+                    Value2.Add(itemToAdd);
+                }
+            }
+
+        }
+        else
+        {
+            if (!CurrentMouseEvent2.CtrlKey || value.Contains("Empty"))
+                Value2.Clear();
+            if (!Value2.Contains(value))
+                Value2.Add(value);
+            else
+                Value2.Remove(value);
+
+            if (Value2.Count == 0)
+            {
+                Value2.Add("Empty");
+            }
+        }
+
+        ValueChanged2.InvokeAsync(Value2);
+    }
+
+    private void clearlist()
+    {
+        Value2.Clear();
+        Value2.Add("Empty");
+        ValueChanged2.InvokeAsync(Value2);
+    }
+    private void selectAll()
+    {
+        Value2.Clear();
+        foreach (var item in DataOptions2)
+        {
+            Value2.Add(item.GLAccountCode);
+        }
+        ValueChanged2.InvokeAsync(Value2);
+    }
+}

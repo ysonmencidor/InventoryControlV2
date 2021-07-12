@@ -168,6 +168,7 @@ else
                 cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
                 cell = ws.Cell("E" + rowNumber).SetValue(item.UOMCode);
                 cell = ws.Cell("F" + rowNumber).SetValue(item.Price);
+                cell.Style.NumberFormat.Format = "#,##0.00";
                 cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
                 cell = ws.Cell("G" + rowNumber).SetValue(item.Amount);
 

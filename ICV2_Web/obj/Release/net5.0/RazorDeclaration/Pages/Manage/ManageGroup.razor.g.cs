@@ -226,6 +226,7 @@ using System.Text.Json;
             Group model = new();
             private string title { get; set; }
             private List<Group> groups { get; set; } = new List<Group>();
+
             private async Task RemoveAssigned(AssignedMenu assignedMenu)
             {
                 var httprequest = await http.PostAsJsonAsync("api/Navigation/UnAssigMenu", assignedMenu);

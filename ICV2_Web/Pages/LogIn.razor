@@ -78,7 +78,7 @@
         var result = await AuthService.Login(model2);
 
 
-        if (result is not null)
+        if (!string.IsNullOrEmpty(result.Access_Token) && !string.IsNullOrEmpty(result.Username))
         {
             NavManager.NavigateTo("/");
         }

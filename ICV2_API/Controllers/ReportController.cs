@@ -11,7 +11,6 @@ using System.Threading.Tasks;
 
 namespace ICV2_API.Controllers
 {
-    [EnableCors("AllowCors")]
     [Route("api/[controller]")]
     [ApiController]
     public class ReportController : ControllerBase
@@ -96,6 +95,27 @@ namespace ICV2_API.Controllers
                 if (filter.CompanyCode != "404")
                 {
                     var model = await qneReportService.GenerateBatchNoBalDetails(filter);
+                    if (model != null)
+                    {
+                        return Ok(model);
+                    }
+                    else
+                    {
+                        return BadRequest();
+                    }
+                }
+            }
+            return BadRequest();
+        }
+        [Route("GenerateMaterialConsumptions")]
+        [HttpPost]
+        public async Task<IActionResult> GenerateMaterialConsumptions(MATERIALCONSUMPTIONFILTER filter)
+        {
+            if (filter != null)
+            {
+                if (filter.CompanyCode != "404")
+                {
+                    var model = await qneReportService.GenerateMaterialConsumptions(filter);
                     if (model != null)
                     {
                         return Ok(model);
@@ -279,5 +299,60 @@ namespace ICV2_API.Controllers
             }
             return BadRequest();
         }
+
+        [Route("GenerateInvoiceMatchListing")]
+        [HttpPost]
+        public async Task<IActionResult> GenerateInvoiceMatchListing(INVOICEMATCHLISTINGFILTER filter)
+        {
+            if (filter != null)
+            {
+                if (filter.CompanyCode != "404")
+                {
+                    var model = await qneReportService.GenerateInvoiceMatchListing(filter);
+
+                    if (model != null)
+                    {
+                        return Ok(model);
+                    }
+                    else
+                    {
+                        return BadRequest();
+                    }
+                }
+                else
+                {
+                    return BadRequest();
+                }
+            }
+            return BadRequest();
+        }
+
+        [Route("GenerateDepartmentLedger")]
+        [HttpPost]
+        public async Task<IActionResult> GenerateDepartmentLedger(DEPARTMENTLEDGERFILTER filter)
+        {
+            if (filter != null)
+            {
+                if (filter.CompanyCode != "404")
+                {
+                    var model = await qneReportService.GenerateDepartmentLedger(filter);
+
+                    if (model != null)
+                    {
+                        return Ok(model);
+                    }
+                    else
+                    {
+                        return BadRequest();
+                    }
+                }
+                else
+                {
+                    return BadRequest();
+                }
+            }
+            return BadRequest();
+        }
+        
     }
 }

@@ -187,6 +187,27 @@ using NEvaldas.Blazor.Select2;
 #line default
 #line hidden
 #nullable disable
+#nullable restore
+#line 3 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Manage\ManageAccess.razor"
+using System.Text;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 4 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Manage\ManageAccess.razor"
+using System.Text.Json;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 5 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Manage\ManageAccess.razor"
+           [Authorize(Roles = "Administrator")]
+
+#line default
+#line hidden
+#nullable disable
     [Microsoft.AspNetCore.Components.RouteAttribute("/Access")]
     public partial class ManageAccess : Microsoft.AspNetCore.Components.ComponentBase
     {
@@ -195,6 +216,87 @@ using NEvaldas.Blazor.Select2;
         {
         }
         #pragma warning restore 1998
+#nullable restore
+#line 111 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Manage\ManageAccess.razor"
+       
+
+    private Modal modalManage;
+    String selectedUser;
+    int SelectedUserId;
+    private List<UserModel> users { get; set; } = new List<UserModel>();
+    private List<MenuInfo> menuList { get; set; } = new List<MenuInfo>();
+    private List<MenuInfo> assignedMenus { get; set; } = new List<MenuInfo>();
+    private List<CustomAccess> customAccesses { get; set; } = new List<CustomAccess>();
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+    private async Task RemoveAssigned(MenuInfo menuInfo)
+    {
+
+        var customAcc = customAccesses.Find(x => x.UserId == SelectedUserId && x.MenuId == menuInfo.MenuId);
+
+        var httprequest = await http.PostAsJsonAsync("api/Navigation/RemoveCustomMenu", customAcc);
+        if (httprequest.IsSuccessStatusCode)
+        {
+            menuList.Add(menuInfo);
+            assignedMenus.Remove(menuInfo);
+        }
+    }
+    private async Task Assign(MenuInfo menuInfo)
+    {
+        var customAccess = new CustomAccess();
+
+        customAccess.MenuId = menuInfo.MenuId;
+        customAccess.UserId = SelectedUserId;
+
+        var httprequest = await http.PostAsJsonAsync("api/Navigation/AssignedCustomMenu", customAccess);
+        if (httprequest.IsSuccessStatusCode)
+        {
+            var content = await httprequest.Content.ReadAsStringAsync();
+            customAccess.CustomId = Convert.ToInt32(content);
+
+            customAccesses.Add(customAccess);
+            menuList.Remove(menuInfo);
+            assignedMenus.Add(menuInfo);
+        }
+
+    }
+    private async Task ShowManage(int UserId,string Name)
+    {
+        menuList = await http.GetFromJsonAsync<List<MenuInfo>>("api/Navigation/GetMenuCustom?UserId=" + UserId);
+        customAccesses = await http.GetFromJsonAsync<List<CustomAccess>>("api/Navigation/GetMenuCustomByUserId?UserId=" + UserId);
+        assignedMenus = await http.GetFromJsonAsync<List<MenuInfo>>("api/Navigation/GetAssignedMenuCustomById?UserId=" + UserId);
+
+
+        //if(customAccesses != null && customAccesses.Count() > 0)
+        //foreach (var item in customAccesses)
+        //{
+        //        assignedMenus.Add()
+        //}
+
+
+        selectedUser = Name;
+        SelectedUserId = UserId;
+        modalManage.Show();
+    }
+    private async Task LoadData()
+    {
+        users = await http.GetFromJsonAsync<List<UserModel>>("api/User/GetUsersByRole?RoleName=User&Type=Custom");
+    }
+    private void HideModal()
+    {
+        //model = new();
+        modalManage.Hide();
+        SelectedUserId = 0;
+        selectedUser = string.Empty;
+    }
+
+#line default
+#line hidden
+#nullable disable
+        [global::Microsoft.AspNetCore.Components.InjectAttribute] private IJSRuntime js { get; set; }
+        [global::Microsoft.AspNetCore.Components.InjectAttribute] private HttpClient http { get; set; }
     }
 }
 #pragma warning restore 1591

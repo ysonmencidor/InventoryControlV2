@@ -29,7 +29,7 @@ namespace DataAccessLibrary
         public async Task<T> LoadSingleData<T>(string sql, object parameters = null)
         {
             using IDbConnection connection = new SqlConnection(appConnectionString.Value);
-            var data = await connection.QuerySingleAsync<T>(sql, parameters);
+            var data = await connection.QuerySingleOrDefaultAsync<T>(sql, parameters);
             return data;
         }
 

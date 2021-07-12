@@ -15,7 +15,6 @@ using System.Threading.Tasks;
 
 namespace ICV2_API.Controllers
 {
-    [EnableCors("AllowCors")]
     public class TokenController : Controller
     {
         private readonly IConfiguration _config;
@@ -33,33 +32,24 @@ namespace ICV2_API.Controllers
         {
             if (await IsValidUsernameAndPassword(username, password))
             {
-                return new ObjectResult(await GenerateToken(username, password));
+                return Ok(await GenerateToken(username, password));
             }
-            else
-            {
-                return BadRequest();
-            }
+            return NotFound();
         }
 
         private async Task<bool> IsValidUsernameAndPassword(string username,string password)
         {
-            var model = new UserModel {
-                Username = username,
-                Password = password
-            };
-
-            if (model != null) {
+                var model = new UserModel {
+                    Username = username,
+                    Password = password
+                };
+   
                 var user = await userData.LoginUser(model);
                 if (user == null)
                 {
                     return false;
                 }
                 return true;
-            }
-            else
-            {
-                return false;
-            }
         }
 
         private async Task<dynamic> GenerateToken(string username,string password)

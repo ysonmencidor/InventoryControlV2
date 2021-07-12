@@ -120,7 +120,7 @@ F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out
 F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_framework\icudt_CJK.dat
 F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_framework\icudt_EFIGS.dat
 F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_framework\icudt_no_CJK.dat
-F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_framework\dotnet.5.0.5.js
+F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_framework\dotnet.5.0.6.js
 F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\ICV2_Web.styles.css
 F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_content\NEvaldas.Blazor.Select2\select2.blazor.js
 F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_content\Blazorise\blazorise.css
@@ -332,7 +332,7 @@ F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out
 F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_framework\icudt_CJK.dat.br
 F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_framework\icudt_EFIGS.dat.br
 F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_framework\icudt_no_CJK.dat.br
-F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_framework\dotnet.5.0.5.js.br
+F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_framework\dotnet.5.0.6.js.br
 F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\ICV2_Web.styles.css.br
 F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_content\NEvaldas.Blazor.Select2\select2.blazor.js.br
 F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_content\Blazorise\blazorise.css.br
@@ -543,7 +543,7 @@ F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out
 F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_framework\icudt_CJK.dat.gz
 F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_framework\icudt_EFIGS.dat.gz
 F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_framework\icudt_no_CJK.dat.gz
-F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_framework\dotnet.5.0.5.js.gz
+F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_framework\dotnet.5.0.6.js.gz
 F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\ICV2_Web.styles.css.gz
 F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_content\NEvaldas.Blazor.Select2\select2.blazor.js.gz
 F:\Blazor\InventoryControlV2\ICV2_Web\obj\Release\net5.0\browser-wasm\PubTmp\Out\wwwroot\_content\Blazorise\blazorise.css.gz

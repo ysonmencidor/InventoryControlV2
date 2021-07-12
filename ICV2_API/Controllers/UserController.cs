@@ -13,9 +13,9 @@ using System.Threading.Tasks;
 namespace ICV2_API.Controllers
 {
     //[Authorize(Roles = "Administrator")]
+
     [Route("api/[controller]")]
     [ApiController]
-    [EnableCors("AllowCors")]
     public class UserController : ControllerBase
     {
         private IUserData userData;

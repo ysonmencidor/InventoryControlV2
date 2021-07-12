@@ -167,13 +167,6 @@ using Blazorise.Icons;
 #line hidden
 #nullable disable
 #nullable restore
-#line 23 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
-using Blazorise.Sidebar;
-
-#line default
-#line hidden
-#nullable disable
-#nullable restore
 #line 24 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
 using ICV2_Web.Services;
 
@@ -203,7 +196,7 @@ using System.Text.Json;
         }
         #pragma warning restore 1998
 #nullable restore
-#line 263 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Manage\ManageGroup.razor"
+#line 265 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Manage\ManageGroup.razor"
                
             private Modal modalManage;
             private Modal modalRef;
@@ -333,7 +326,7 @@ using System.Text.Json;
                     await js.InvokeVoidAsync("alert", "Please select user.");
                 }
             }
-            private async Task ShowUserForGroupForm(int groupid)
+            private async Task ShowUserForGroupForm(int groupid,string groupName)
             {
                 users = await http.GetFromJsonAsync<List<UserModel>>("api/User/GetUserWithoutGroup");
 
@@ -365,7 +358,7 @@ using System.Text.Json;
                 //    }
                 //}
 
-
+                selectedGroupName = groupName;
 
                 SelectedGroupId = groupid;
                 MenuAccessModel.GroupId = SelectedGroupId;
@@ -427,6 +420,10 @@ using System.Text.Json;
                     modalRef.Hide();
                 }
                 //Console.WriteLine(model.IsActive);
+            }
+            private void HideModalUserAdd()
+            {
+                modalUserRef.Hide();
             }
             private void HideModal()
             {

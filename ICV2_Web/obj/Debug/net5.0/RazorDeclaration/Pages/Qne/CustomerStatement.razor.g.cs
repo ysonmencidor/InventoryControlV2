@@ -167,13 +167,6 @@ using Blazorise.Icons;
 #line hidden
 #nullable disable
 #nullable restore
-#line 23 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
-using Blazorise.Sidebar;
-
-#line default
-#line hidden
-#nullable disable
-#nullable restore
 #line 24 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
 using ICV2_Web.Services;
 
@@ -231,11 +224,11 @@ using ICV2_Web.JSHelper;
         }
         #pragma warning restore 1998
 #nullable restore
-#line 104 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\CustomerStatement.razor"
+#line 111 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\CustomerStatement.razor"
        
 
 
-   CUSTOMERSTATEMENTFILTER formModel = new();
+    CUSTOMERSTATEMENTFILTER formModel = new();
 
     private List<Debtors> debtors { get; set; }
     private List<Areas> area { get; set; }
@@ -265,7 +258,7 @@ using ICV2_Web.JSHelper;
 
     private async void GenerateExcel(List<CUSTOMERSTATEMENTRESULT> list)
     {
-        string PayToCompany = companies.Where(y =>y.Code == formModel.CompanyCode).Select(x => x.Name).First();
+        string PayToCompany = companies.Where(y => y.Code == formModel.CompanyCode).Select(x => x.Name).First();
         IXLAddress ORIGINAL_AMOUNT_BEGIN_CELL;
         IXLAddress ORIGINAL_AMOUNT_END_CELL;
 

@@ -167,13 +167,6 @@ using Blazorise.Icons;
 #line hidden
 #nullable disable
 #nullable restore
-#line 23 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
-using Blazorise.Sidebar;
-
-#line default
-#line hidden
-#nullable disable
-#nullable restore
 #line 24 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
 using ICV2_Web.Services;
 
@@ -187,14 +180,328 @@ using NEvaldas.Blazor.Select2;
 #line default
 #line hidden
 #nullable disable
+#nullable restore
+#line 2 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\DepartmentLedger.razor"
+using System.Text.Json;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 3 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\DepartmentLedger.razor"
+using System.IO;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 4 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\DepartmentLedger.razor"
+using ClosedXML.Excel;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 5 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\DepartmentLedger.razor"
+using ICV2_Web.JSHelper;
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 6 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\DepartmentLedger.razor"
+           [Authorize(Roles = "Administrator,User")]
+
+#line default
+#line hidden
+#nullable disable
     [Microsoft.AspNetCore.Components.RouteAttribute("/DepartmentLedger")]
-    public partial class DepartmentLedger : Microsoft.AspNetCore.Components.ComponentBase
+    public partial class DepartmentLedger : Microsoft.AspNetCore.Components.ComponentBase, IDisposable
     {
         #pragma warning disable 1998
         protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder __builder)
         {
         }
         #pragma warning restore 1998
+#nullable restore
+#line 93 "F:\Blazor\InventoryControlV2\ICV2_Web\Pages\Qne\DepartmentLedger.razor"
+       
+
+    DEPARTMENTLEDGERFILTER formModel = new();
+
+    private List<Company> companies { get; set; }
+    private List<Department> departments { get; set; }
+    List<GLAccounts> gLAccounts = new List<GLAccounts>();
+
+    List<string> selectedDepartments = new List<string>();
+    List<string> selectedGLAccounts = new List<string>();
+    private string CompCode { get; set; }
+
+    public void SelectedGLsMethod(List<string> Selected)
+    {
+        selectedGLAccounts = new List<string>();
+        List<string> temp = new List<string>();
+        foreach (var item in Selected)
+        {
+            temp.Add(item);
+        }
+        selectedGLAccounts = temp;
+
+        //if (selectedGLAccounts.Count > 0)
+        //{
+        //    foreach (var item in selectedGLAccounts)
+        //    {
+        //        Console.WriteLine(item);
+        //    }
+        //}
+    }
+
+    public async Task SelectedDeptsMethod(List<string> Selected)
+    {
+
+        gLAccounts.Clear();
+        selectedDepartments = new List<string>();
+        List<string> temp = new List<string>();
+        foreach(var item in Selected)
+        {
+            temp.Add(item);
+        }
+        selectedDepartments = temp;
+
+        if (selectedDepartments != null)
+        {
+            //foreach(var item in selectedDepartments)
+            //{
+            //    Console.WriteLine(item);
+            //}
+
+            foreach(var item in selectedDepartments)
+            {
+                var DeptId = departments.Find(x => x.AccountCode == item).Id;
+                if(DeptId != Guid.Empty)
+                {
+                    //Console.WriteLine(item);
+                    var data  = await http.GetFromJsonAsync<List<GLAccounts>>("api/Qne/GetGLAccounts?companyCode=" + CompCode + "&AccountIds="+DeptId);
+
+                    if (data != null)
+                    {
+                        foreach(var item2 in data)
+                        {
+                            gLAccounts.Add(item2);
+                        }
+                    }
+                }
+            }
+
+        }
+    }
+
+    private async Task GenerateReport()
+    {
+        DEPARTMENTLEDGERFILTER filter = new DEPARTMENTLEDGERFILTER();
+        filter.DateFrom = formModel.DateFrom;
+        filter.DateTo = formModel.DateTo;
+        filter.DepartmentAccountCodes = selectedDepartments;
+        filter.GLAccountCodes = selectedGLAccounts;
+        filter.CompanyCode = AppState.selectedCompanyCode;
+
+        var httpRequest = await http.PostAsJsonAsync("api/Report/GenerateDepartmentLedger", filter);
+
+        if (httpRequest.IsSuccessStatusCode)
+        {
+            var responseString = await httpRequest.Content.ReadAsStringAsync();
+
+            //Console.WriteLine(responseString);
+            var data = JsonSerializer.Deserialize<List<DEPARTMENTLEDGERRESULT>>(responseString,
+              new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+
+            await GenerateExcel(data);
+
+        }
+    }
+    private async Task GenerateExcel(List<DEPARTMENTLEDGERRESULT> data)
+    {
+        string PayToCompany = companies.Where(y => y.Code == CompCode).Select(x => x.Name).First();
+
+        using (XLWorkbook wb = new XLWorkbook())
+        {
+            var AccountCodes = data.Select(x => x.AccountCode).Distinct();
+
+            foreach(var item in AccountCodes)
+            {
+                int rowNumber = 0;
+
+                IXLWorksheet ws = wb.Worksheets.Add(item);
+                IXLCell cell;
+
+                cell = ws.Cell("A" + ++rowNumber).SetValue("Company ");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("B" + rowNumber).SetValue(PayToCompany);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("A" + ++rowNumber).SetValue("Department ");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("B" + rowNumber).SetValue(item);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                cell.Style.Font.Bold = true;
+
+                var datetimeTo = formModel.DateTo == null ? DateTime.Now : formModel.DateTo;
+
+                if (formModel.DateFrom is null)
+                {
+
+                    cell = ws.Cell("A" + ++rowNumber).SetValue("As of " + datetimeTo?.ToString("MMM dd, yyyy"));
+                    cell.Style.Font.Bold = true;
+                }
+                else
+                {
+
+                    cell = ws.Cell("A" + ++rowNumber).SetValue("Date From ");
+                    cell.Style.Font.Bold = true;
+                    cell = ws.Cell("B" + rowNumber).SetValue(formModel.DateFrom?.ToShortDateString());
+                    cell.Style.Font.Bold = true;
+
+                    cell = ws.Cell("A" + ++rowNumber).SetValue("Date To ");
+                    cell.Style.Font.Bold = true;
+                    cell = ws.Cell("B" + rowNumber).SetValue(formModel.DateTo?.ToShortDateString());
+                    cell.Style.Font.Bold = true;
+
+                }
+
+                rowNumber++;
+
+                #region Excel header
+                cell = ws.Cell("A" + ++rowNumber).SetValue("DEPARTMENT CODE");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("B" + rowNumber).SetValue("DATE");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("C" + rowNumber).SetValue("ACCOUNT CODE");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("D" + rowNumber).SetValue("ACCOUNT NAME");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("E" + rowNumber).SetValue("REFERENCE");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("F" + rowNumber).SetValue("DESCRIPTION");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("G" + rowNumber).SetValue("AMOUNT");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("H" + rowNumber).SetValue("REFERENCE");
+                cell.Style.Font.Bold = true;
+
+                cell = ws.Cell("I" + rowNumber).SetValue("JOURNAL TYPE");
+                cell.Style.Font.Bold = true;
+
+                var list = data.Where(x => x.AccountCode == item).OrderBy(x => x.TransactionDate).ToList();
+                #endregion
+                foreach (DEPARTMENTLEDGERRESULT result in list)
+                {
+                    rowNumber++;
+                    cell = ws.Cell("A" + rowNumber).SetValue(result.AccountCode);
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+                    cell = ws.Cell("B" + rowNumber).SetValue(result.TransactionDate);
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+                    cell = ws.Cell("C" + rowNumber).SetValue(result.GLAccountCode);
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+                    cell = ws.Cell("D" + rowNumber).SetValue(result.GLAccountName);
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+                    cell = ws.Cell("E" + rowNumber).SetValue(result.DocumentCode);
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+                    cell = ws.Cell("F" + rowNumber).SetValue(result.Description);
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+                    cell = ws.Cell("G" + rowNumber).SetValue(result.Balance);
+                    cell.Style.NumberFormat.Format = "#,##0.00";
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+                    cell = ws.Cell("H" + rowNumber).SetValue(result.ReferenceNo);
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+                    cell = ws.Cell("I" + rowNumber).SetValue(result.JournalType);
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+
+                }
+
+                ws.Column("A").Width = 16;
+                ws.Column("B").Width = 16;
+                ws.Column("C").Width = 23;
+                ws.Column("D").Width = 33;
+                ws.Column("E").Width = 23;
+                ws.Column("F").Width = 23;
+                ws.Column("G").Width = 23;
+                ws.Column("H").Width = 17;
+                ws.Column("H").Width = 12;
+            }
+
+            if (wb.Worksheets.Count > 0)
+            {
+                MemoryStream ms = GetStream(wb);
+                byte[] bytes = ms.ToArray();
+                ms.Close();
+
+                await js.SaveAsFileAsync("DepartmentLedger", bytes, "application/vnd.ms-excel");
+            }
+            else
+            {
+                await js.InvokeVoidAsync("alert", "No record found.");
+            }
+
+        }
+    }
+    private MemoryStream GetStream(XLWorkbook excelWorkbook)
+    {
+        MemoryStream fs = new MemoryStream();
+        excelWorkbook.SaveAs(fs);
+        fs.Position = 0;
+        return fs;
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState.CompanyReady())
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        CompCode = AppState.selectedCompanyCode;
+        companies = await http.GetFromJsonAsync<List<Company>>("api/Navigation/GetCompany");
+        departments = await http.GetFromJsonAsync<List<Department>>("api/Qne/GetDepartments?companyCode=" + CompCode);
+
+    }
+    private async Task AppState_StateChanged(ComponentBase Source, string Property)
+    {
+        if (Source != this)
+        {
+            if (AppState.CompanyReady())
+            {
+                await LoadData();
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    protected override void OnInitialized()
+    {
+        AppState.StateChanged += async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+    void IDisposable.Dispose()
+    {
+        AppState.StateChanged -= async (Source, Property) => await AppState_StateChanged(Source, Property);
+    }
+
+#line default
+#line hidden
+#nullable disable
+        [global::Microsoft.AspNetCore.Components.InjectAttribute] private IJSRuntime js { get; set; }
+        [global::Microsoft.AspNetCore.Components.InjectAttribute] private HttpClient http { get; set; }
+        [global::Microsoft.AspNetCore.Components.InjectAttribute] private AppState AppState { get; set; }
     }
 }
 #pragma warning restore 1591

@@ -167,13 +167,6 @@ using Blazorise.Icons;
 #line hidden
 #nullable disable
 #nullable restore
-#line 23 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
-using Blazorise.Sidebar;
-
-#line default
-#line hidden
-#nullable disable
-#nullable restore
 #line 24 "F:\Blazor\InventoryControlV2\ICV2_Web\_Imports.razor"
 using ICV2_Web.Services;
 
@@ -418,7 +411,7 @@ using ICV2_Web.JSHelper;
             double total_Common = 0;
             double total_UncategorizedProd = 0;
 
-            double total_credit = 0;
+            //double total_credit = 0;
             double credit_swine = 0;
             double credit_poultry = 0;
             double credit_common = 0;
